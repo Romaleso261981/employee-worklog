@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -20,6 +20,7 @@ interface Props {
 
 export function AdminTools({ adminUid, works, onDataChanged }: Props) {
   const [categoryError, setCategoryError] = useState<string | null>(null);
+  const [selectedEmail, setSelectedEmail] = useState("");
   type CategoryFormValues = z.output<typeof categorySchema>;
 
   const {
@@ -43,6 +44,14 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
     }
   });
 
+  const workerEmails = useMemo(() => {
+    return [...new Set(works.map((work) => work.userEmail))].sort((a, b) => a.localeCompare(b));
+  }, [works]);
+
+  const filteredWorks = useMemo(() => {
+    return selectedEmail ? works.filter((work) => work.userEmail === selectedEmail) : works;
+  }, [selectedEmail, works]);
+
   return (
     <section className={styles.container}>
       <form className={styles.form} onSubmit={onCategorySubmit}>
@@ -56,11 +65,28 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
 
       <div className={styles.form}>
         <h2>Адмін: Редагування суми</h2>
+        <div className={styles.filterGroup}>
+          <label htmlFor="worker-email-filter">Працівник</label>
+          <select
+            id="worker-email-filter"
+            className={styles.select}
+            value={selectedEmail}
+            onChange={(event) => setSelectedEmail(event.target.value)}
+          >
+            <option value="">Усі працівники</option>
+            {workerEmails.map((email) => (
+              <option key={email} value={email}>
+                {email}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className={styles.rows}>
-          {works.map((work) => (
+          {filteredWorks.map((work) => (
             <AmountRow key={work.id} work={work} onDataChanged={onDataChanged} />
           ))}
         </div>
+        {filteredWorks.length === 0 ? <p className={styles.meta}>Немає робіт для обраного працівника</p> : null}
       </div>
     </section>
   );
