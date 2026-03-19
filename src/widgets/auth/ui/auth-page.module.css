@@ -1,0 +1,21 @@
+.page {
+  min-height: 100vh;
+  padding: 16px;
+  display: grid;
+  place-content: center;
+  gap: 14px;
+}
+
+.switcher {
+  display: flex;
+  justify-content: center;
+}
+
+.text {
+  text-align: center;
+}
+
+.text a {
+  color: var(--primary);
+  font-weight: 600;
+}

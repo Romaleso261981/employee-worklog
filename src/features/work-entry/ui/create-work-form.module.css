@@ -1,0 +1,26 @@
+.form {
+  background: var(--surface);
+  border-radius: 14px;
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+  box-shadow: 0 6px 20px rgba(16, 31, 61, 0.08);
+}
+
+.wrapper {
+  display: grid;
+  gap: 6px;
+}
+
+.select,
+.textarea {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  background: #fff;
+}
+
+.error {
+  color: var(--danger);
+  font-size: 12px;
+}

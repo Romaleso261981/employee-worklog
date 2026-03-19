@@ -1,0 +1,18 @@
+.container {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  z-index: 100;
+  display: grid;
+  gap: 8px;
+}
+
+.success,
+.error {
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: #fff;
+}
+
+.success { background: #1f9a65; }
+.error { background: #ce2e2e; }

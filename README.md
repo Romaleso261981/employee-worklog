@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Employee Worklog (Next.js + FSD + Firebase)
 
-## Getting Started
+Система обліку робіт для співробітників з ролями `employee` та `admin`.
 
-First, run the development server:
+## Можливості
+
+- Реєстрація та логін через Firebase Auth
+- Особистий кабінет співробітника
+- Додавання робіт: дата, опис, категорія, необов'язкова сума
+- За замовчуванням сума = `0`
+- Адмін:
+  - додає категорії
+  - редагує суму для будь-якої роботи
+- Адаптивний інтерфейс (mobile-first)
+- i18n перемикач `UA/EN`
+- UI-kit компоненти: `Modal`, `Table`, `Toast`
+- Пошук, фільтрація та пагінація робіт
+- FSD-структура для подальшого масштабування
+
+## FSD-структура
+
+- `src/app` - маршрути, глобальні стилі, провайдери
+- `src/widgets` - сторінкові композиції
+- `src/features` - бізнес-сценарії (auth, додавання робіт, admin-tools)
+- `src/entities` - сутності та доступ до даних
+- `src/shared` - перевикористовувані UI-компоненти, firebase, auth context, валідація
+
+## Запуск локально
+
+1. Встановіть залежності:
+
+```bash
+npm install
+```
+
+2. Створіть `.env.local` на базі `.env.example` і заповніть Firebase змінні.
+
+3. Запустіть dev сервер:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Firebase налаштування
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Увімкніть **Email/Password** у Firebase Authentication.
+2. Створіть Firestore (Production mode).
+3. Додайте правила з `firestore.rules`.
+4. Першому адміну змініть роль у `users/{uid}` на `admin` вручну через Firebase Console.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Деплой
 
-## Learn More
+Проєкт готовий до хостингу на будь-якій хмарі:
 
-To learn more about Next.js, take a look at the following resources:
+- Vercel
+- Firebase Hosting
+- Netlify
+- Render
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Потрібно лише передати ENV-змінні з `.env.example` у конфіг сервісу.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## E2E тести
 
-## Deploy on Vercel
+- Playwright конфіг: `playwright.config.ts`
+- Тести: `tests/e2e`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Запуск:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run test:e2e
+```
+
+## CI/CD
+
+Додані GitHub Actions:
+
+- `ci.yml` - lint + build на `push/pull_request`
+- `deploy-vercel.yml` - автодеплой на Vercel при пуші в `main`
+
+Для деплою заповніть секрети репозиторію:
+
+- `VERCEL_TOKEN`
+- `VERCEL_ORG_ID`
+- `VERCEL_PROJECT_ID`
