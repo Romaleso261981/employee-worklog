@@ -19,6 +19,8 @@ import { useToast } from "@/shared/ui/toast/toast-provider";
 import styles from "./dashboard-page.module.css";
 
 const PAGE_SIZE = 8;
+type SortField = "date" | "description" | "category" | "amount";
+type SortDirection = "desc" | "asc";
 
 export function DashboardPage() {
   const router = useRouter();
@@ -33,6 +35,8 @@ export function DashboardPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [workerFilter, setWorkerFilter] = useState("");
+  const [sortField, setSortField] = useState<SortField>("date");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [page, setPage] = useState(1);
 
   const loadData = useCallback(async () => {
@@ -96,17 +100,91 @@ export function DashboardPage() {
     });
   }, [works, searchTerm, categoryFilter, workerFilter]);
 
-  const pageCount = Math.max(1, Math.ceil(filteredWorks.length / PAGE_SIZE));
+  const sortedWorks = useMemo(() => {
+    return [...filteredWorks].sort((a, b) => {
+      const directionMultiplier = sortDirection === "asc" ? 1 : -1;
+
+      if (sortField === "amount") {
+        return (a.amount - b.amount) * directionMultiplier;
+      }
+
+      if (sortField === "date") {
+        return a.workDate.localeCompare(b.workDate) * directionMultiplier;
+      }
+
+      if (sortField === "category") {
+        return a.categoryName.localeCompare(b.categoryName) * directionMultiplier;
+      }
+
+      return a.description.localeCompare(b.description) * directionMultiplier;
+    });
+  }, [filteredWorks, sortDirection, sortField]);
+
+  const toggleSort = (field: SortField) => {
+    setPage(1);
+    if (sortField === field) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+      return;
+    }
+
+    setSortField(field);
+    setSortDirection(field === "amount" || field === "date" ? "desc" : "asc");
+  };
+
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return "";
+    }
+    return sortDirection === "asc" ? "↑" : "↓";
+  };
+
+  const pageCount = Math.max(1, Math.ceil(sortedWorks.length / PAGE_SIZE));
   const paginatedWorks = useMemo(() => {
     const from = (page - 1) * PAGE_SIZE;
-    return filteredWorks.slice(from, from + PAGE_SIZE);
-  }, [filteredWorks, page]);
+    return sortedWorks.slice(from, from + PAGE_SIZE);
+  }, [sortedWorks, page]);
 
   const columns: TableColumn<WorkEntry>[] = [
-    { key: "date", title: t("dashboard.dateLabel"), render: (row) => row.workDate },
-    { key: "description", title: t("dashboard.descriptionLabel"), render: (row) => row.description },
-    { key: "category", title: t("dashboard.categoryLabel"), render: (row) => row.categoryName },
-    { key: "amount", title: t("dashboard.amountLabel"), render: (row) => row.amount.toFixed(2) },
+    {
+      key: "date",
+      title: (
+        <button type="button" className={styles.sortHeader} onClick={() => toggleSort("date")}>
+          {t("dashboard.dateLabel")}
+          {getSortIcon("date") ? ` ${getSortIcon("date")}` : ""}
+        </button>
+      ),
+      render: (row) => row.workDate,
+    },
+    {
+      key: "description",
+      title: (
+        <button type="button" className={styles.sortHeader} onClick={() => toggleSort("description")}>
+          {t("dashboard.descriptionLabel")}
+          {getSortIcon("description") ? ` ${getSortIcon("description")}` : ""}
+        </button>
+      ),
+      render: (row) => row.description,
+    },
+    {
+      key: "category",
+      title: (
+        <button type="button" className={styles.sortHeader} onClick={() => toggleSort("category")}>
+          {t("dashboard.categoryLabel")}
+          {getSortIcon("category") ? ` ${getSortIcon("category")}` : ""}
+        </button>
+      ),
+      render: (row) => row.categoryName,
+    },
+    {
+      key: "amount",
+      title: (
+        <button type="button" className={styles.sortHeader} onClick={() => toggleSort("amount")}>
+          {t("dashboard.amountLabel")}
+          {getSortIcon("amount") ? ` ${getSortIcon("amount")}` : ""}
+        </button>
+      ),
+      render: (row) => row.amount.toFixed(2),
+    },
   ];
 
   const salarySummary = useMemo(() => {
@@ -192,7 +270,7 @@ export function DashboardPage() {
           ) : null}
         </div>
 
-        {!dataLoading && filteredWorks.length === 0 ? <p>{t("dashboard.noWorks")}</p> : null}
+        {!dataLoading && sortedWorks.length === 0 ? <p>{t("dashboard.noWorks")}</p> : null}
         <Table columns={columns} rows={paginatedWorks} rowKey={(row) => row.id} />
 
         <div className={styles.pagination}>

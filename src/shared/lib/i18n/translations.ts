@@ -42,6 +42,12 @@ export const translations = {
       payoutHistoryTitle: "Історія виплат",
       noPayouts: "Виплат ще немає.",
       allWorkers: "Усі працівники",
+      sortDate: "Сортувати: дата",
+      sortDescription: "Сортувати: опис",
+      sortCategory: "Сортувати: категорія",
+      sortAmount: "Сортувати: сума",
+      sortDirectionAsc: "Напрямок: зростання",
+      sortDirectionDesc: "Напрямок: спадання",
     },
     workForm: {
       title: "Додати роботу",
@@ -96,6 +102,12 @@ export const translations = {
       payoutHistoryTitle: "Payout history",
       noPayouts: "No payouts yet.",
       allWorkers: "All workers",
+      sortDate: "Sort: date",
+      sortDescription: "Sort: description",
+      sortCategory: "Sort: category",
+      sortAmount: "Sort: amount",
+      sortDirectionAsc: "Direction: ascending",
+      sortDirectionDesc: "Direction: descending",
     },
     workForm: {
       title: "Add work",
@@ -147,6 +159,12 @@ export type TranslationPath =
   | "dashboard.payoutHistoryTitle"
   | "dashboard.noPayouts"
   | "dashboard.allWorkers"
+  | "dashboard.sortDate"
+  | "dashboard.sortDescription"
+  | "dashboard.sortCategory"
+  | "dashboard.sortAmount"
+  | "dashboard.sortDirectionAsc"
+  | "dashboard.sortDirectionDesc"
   | "workForm.title"
   | "workForm.date"
   | "workForm.description"

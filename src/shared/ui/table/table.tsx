@@ -2,7 +2,7 @@ import styles from "./table.module.css";
 
 export interface TableColumn<T> {
   key: string;
-  title: string;
+  title: React.ReactNode;
   render: (row: T) => React.ReactNode;
 }
 
