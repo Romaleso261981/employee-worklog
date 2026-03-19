@@ -84,9 +84,12 @@ function AmountRow({ work, onDataChanged }: { work: WorkEntry; onDataChanged: ()
 
   return (
     <form className={styles.row} onSubmit={onSubmit}>
-      <div>
+      <div className={styles.info}>
         <p className={styles.description}>{work.userEmail}</p>
-        <p>{work.workDate} - {work.categoryName}</p>
+        <p className={styles.meta}>
+          {work.workDate} - {work.categoryName}
+        </p>
+        <p className={styles.workDescription}>{work.description}</p>
       </div>
       <div className={styles.amountGroup}>
         <input className={styles.amountInput} type="number" min={0} step="0.01" {...register("amount")} />

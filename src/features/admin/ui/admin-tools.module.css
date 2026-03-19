@@ -20,13 +20,36 @@
 .row {
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 10px;
+  padding: 12px;
   display: grid;
-  gap: 8px;
+  gap: 10px;
+  background: var(--surface);
+}
+
+.info {
+  display: grid;
+  gap: 4px;
 }
 
 .description {
   font-weight: 600;
+  line-height: 1.2;
+}
+
+.meta {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.workDescription {
+  color: var(--text);
+  line-height: 1.4;
+  background: #f8faff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 8px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .amountGroup {
