@@ -41,6 +41,7 @@ export const translations = {
       balance: "Залишок",
       payoutHistoryTitle: "Історія виплат",
       noPayouts: "Виплат ще немає.",
+      allWorkers: "Усі працівники",
     },
     workForm: {
       title: "Додати роботу",
@@ -94,6 +95,7 @@ export const translations = {
       balance: "Balance",
       payoutHistoryTitle: "Payout history",
       noPayouts: "No payouts yet.",
+      allWorkers: "All workers",
     },
     workForm: {
       title: "Add work",
@@ -144,6 +146,7 @@ export type TranslationPath =
   | "dashboard.balance"
   | "dashboard.payoutHistoryTitle"
   | "dashboard.noPayouts"
+  | "dashboard.allWorkers"
   | "workForm.title"
   | "workForm.date"
   | "workForm.description"

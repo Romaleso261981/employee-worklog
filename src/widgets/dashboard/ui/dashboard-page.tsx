@@ -32,6 +32,7 @@ export function DashboardPage() {
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [workerFilter, setWorkerFilter] = useState("");
   const [page, setPage] = useState(1);
 
   const loadData = useCallback(async () => {
@@ -77,6 +78,10 @@ export function DashboardPage() {
     }
   }, [loadData, loading, router, user]);
 
+  const workerEmails = useMemo(() => {
+    return [...new Set(works.map((item) => item.userEmail))].sort((a, b) => a.localeCompare(b));
+  }, [works]);
+
   const filteredWorks = useMemo(() => {
     return works.filter((item) => {
       const search = searchTerm.toLowerCase();
@@ -85,10 +90,11 @@ export function DashboardPage() {
         item.workDate.includes(searchTerm) ||
         item.categoryName.toLowerCase().includes(search);
       const matchesCategory = categoryFilter ? item.categoryId === categoryFilter : true;
+      const matchesWorker = workerFilter ? item.userEmail === workerFilter : true;
 
-      return matchesSearch && matchesCategory;
+      return matchesSearch && matchesCategory && matchesWorker;
     });
-  }, [works, searchTerm, categoryFilter]);
+  }, [works, searchTerm, categoryFilter, workerFilter]);
 
   const pageCount = Math.max(1, Math.ceil(filteredWorks.length / PAGE_SIZE));
   const paginatedWorks = useMemo(() => {
@@ -167,6 +173,23 @@ export function DashboardPage() {
               </option>
             ))}
           </select>
+          {user.role === "admin" ? (
+            <select
+              className={styles.select}
+              value={workerFilter}
+              onChange={(event) => {
+                setWorkerFilter(event.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">{t("dashboard.allWorkers")}</option>
+              {workerEmails.map((email) => (
+                <option key={email} value={email}>
+                  {email}
+                </option>
+              ))}
+            </select>
+          ) : null}
         </div>
 
         {!dataLoading && filteredWorks.length === 0 ? <p>{t("dashboard.noWorks")}</p> : null}
