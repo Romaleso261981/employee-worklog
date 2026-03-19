@@ -19,3 +19,9 @@ export const categorySchema = z.object({
 export const amountSchema = z.object({
   amount: z.coerce.number().min(0, "Сума не може бути від'ємною"),
 });
+
+export const salaryPayoutSchema = z.object({
+  payoutDate: z.string().min(1, "Оберіть дату"),
+  description: z.string().min(3, "Опис має містити мінімум 3 символи"),
+  amount: z.coerce.number().positive("Сума має бути більшою за 0"),
+});

@@ -32,5 +32,14 @@ service cloud.firestore {
       allow update: if isAdmin();
       allow delete: if false;
     }
+
+    match /salaryPayouts/{payoutId} {
+      allow read: if isAuth() && (
+        resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
+
+      allow create, update, delete: if isAdmin();
+    }
   }
 }

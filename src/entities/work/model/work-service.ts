@@ -10,7 +10,7 @@ import {
   where,
 } from "firebase/firestore";
 import { getFirebaseDb } from "@/shared/lib/firebase/client";
-import { CreateWorkEntryPayload, WorkEntry } from "./types";
+import { CreateSalaryPayoutPayload, CreateWorkEntryPayload, SalaryPayout, WorkEntry } from "./types";
 
 export async function createWorkEntry(payload: CreateWorkEntryPayload): Promise<void> {
   const db = getFirebaseDb();
@@ -47,4 +47,23 @@ export async function updateWorkAmount(workId: string, amount: number): Promise<
     amount,
     updatedAt: serverTimestamp(),
   });
+}
+
+export async function createSalaryPayout(payload: CreateSalaryPayoutPayload): Promise<void> {
+  const db = getFirebaseDb();
+  const salaryPayoutsCollection = collection(db, "salaryPayouts");
+
+  await addDoc(salaryPayoutsCollection, {
+    ...payload,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function listAllSalaryPayouts(): Promise<SalaryPayout[]> {
+  const db = getFirebaseDb();
+  const salaryPayoutsCollection = collection(db, "salaryPayouts");
+  const snapshot = await getDocs(query(salaryPayoutsCollection, orderBy("payoutDate", "desc")));
+
+  return snapshot.docs.map((item) => ({ id: item.id, ...(item.data() as Omit<SalaryPayout, "id">) }));
 }

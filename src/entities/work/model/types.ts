@@ -18,3 +18,20 @@ export interface CreateWorkEntryPayload {
   categoryName: string;
   amount?: number;
 }
+
+export interface SalaryPayout {
+  id: string;
+  userId: string;
+  userEmail: string;
+  payoutDate: string;
+  description: string;
+  amount: number;
+}
+
+export interface CreateSalaryPayoutPayload {
+  userId: string;
+  userEmail: string;
+  payoutDate: string;
+  description: string;
+  amount: number;
+}
