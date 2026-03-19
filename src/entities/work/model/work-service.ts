@@ -67,3 +67,13 @@ export async function listAllSalaryPayouts(): Promise<SalaryPayout[]> {
 
   return snapshot.docs.map((item) => ({ id: item.id, ...(item.data() as Omit<SalaryPayout, "id">) }));
 }
+
+export async function listUserSalaryPayouts(userId: string): Promise<SalaryPayout[]> {
+  const db = getFirebaseDb();
+  const salaryPayoutsCollection = collection(db, "salaryPayouts");
+  const snapshot = await getDocs(query(salaryPayoutsCollection, where("userId", "==", userId)));
+
+  return snapshot.docs
+    .map((item) => ({ id: item.id, ...(item.data() as Omit<SalaryPayout, "id">) }))
+    .sort((a, b) => b.payoutDate.localeCompare(a.payoutDate));
+}

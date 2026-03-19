@@ -35,6 +35,12 @@ export const translations = {
       amountLabel: "Сума",
       dateLabel: "Дата",
       descriptionLabel: "Опис",
+      salarySummaryTitle: "Фінанси",
+      totalEarned: "Загальна сума заробітку",
+      totalPaid: "Загальна сума виплат",
+      balance: "Залишок",
+      payoutHistoryTitle: "Історія виплат",
+      noPayouts: "Виплат ще немає.",
     },
     workForm: {
       title: "Додати роботу",
@@ -82,6 +88,12 @@ export const translations = {
       amountLabel: "Amount",
       dateLabel: "Date",
       descriptionLabel: "Description",
+      salarySummaryTitle: "Finance",
+      totalEarned: "Total earned",
+      totalPaid: "Total paid",
+      balance: "Balance",
+      payoutHistoryTitle: "Payout history",
+      noPayouts: "No payouts yet.",
     },
     workForm: {
       title: "Add work",
@@ -126,6 +138,12 @@ export type TranslationPath =
   | "dashboard.amountLabel"
   | "dashboard.dateLabel"
   | "dashboard.descriptionLabel"
+  | "dashboard.salarySummaryTitle"
+  | "dashboard.totalEarned"
+  | "dashboard.totalPaid"
+  | "dashboard.balance"
+  | "dashboard.payoutHistoryTitle"
+  | "dashboard.noPayouts"
   | "workForm.title"
   | "workForm.date"
   | "workForm.description"

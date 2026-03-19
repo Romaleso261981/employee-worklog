@@ -24,6 +24,7 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
   const [salaryLoading, setSalaryLoading] = useState(true);
   const [salaryPayouts, setSalaryPayouts] = useState<SalaryPayout[]>([]);
   const [selectedEmail, setSelectedEmail] = useState("");
+  const [payoutRecipientEmail, setPayoutRecipientEmail] = useState("");
   type CategoryFormValues = z.output<typeof categorySchema>;
   type SalaryPayoutFormValues = z.output<typeof salaryPayoutSchema>;
 
@@ -78,6 +79,17 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
     );
   }, [works, salaryPayouts]);
 
+  useEffect(() => {
+    if (selectedEmail) {
+      setPayoutRecipientEmail(selectedEmail);
+      return;
+    }
+
+    if (!payoutRecipientEmail && workerEmails.length > 0) {
+      setPayoutRecipientEmail(workerEmails[0]);
+    }
+  }, [selectedEmail, payoutRecipientEmail, workerEmails]);
+
   const workerIdByEmail = useMemo(() => {
     const map = new Map<string, string>();
     works.forEach((work) => {
@@ -106,12 +118,12 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
 
   const onSalarySubmit = handleSalarySubmit(async (values) => {
     setSalaryError(null);
-    if (!selectedEmail) {
-      setSalaryError("Оберіть працівника для виплати");
+    if (!payoutRecipientEmail) {
+      setSalaryError("Оберіть отримувача виплати");
       return;
     }
 
-    const userId = workerIdByEmail.get(selectedEmail);
+    const userId = workerIdByEmail.get(payoutRecipientEmail);
     if (!userId) {
       setSalaryError("Не вдалося визначити працівника");
       return;
@@ -120,7 +132,7 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
     try {
       await createSalaryPayout({
         userId,
-        userEmail: selectedEmail,
+        userEmail: payoutRecipientEmail,
         payoutDate: values.payoutDate,
         description: values.description,
         amount: values.amount,
@@ -236,6 +248,21 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
 
         <form className={styles.salaryForm} onSubmit={onSalarySubmit}>
           <h3>Видача зарплати</h3>
+          <label className={styles.filterGroup}>
+            <span>Кому видано</span>
+            <select
+              className={styles.select}
+              value={payoutRecipientEmail}
+              onChange={(event) => setPayoutRecipientEmail(event.target.value)}
+            >
+              {workerEmails.length === 0 ? <option value="">Немає працівників</option> : null}
+              {workerEmails.map((email) => (
+                <option key={email} value={email}>
+                  {email}
+                </option>
+              ))}
+            </select>
+          </label>
           <Input label="Дата видачі" type="date" {...registerSalary("payoutDate")} error={salaryErrors.payoutDate?.message} />
           <label className={styles.filterGroup}>
             <span>Опис</span>
@@ -251,7 +278,7 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
             error={salaryErrors.amount?.message}
           />
           {salaryError ? <p className={styles.error}>{salaryError}</p> : null}
-          <Button disabled={isSalarySubmitting || !selectedEmail} type="submit">
+          <Button disabled={isSalarySubmitting || !payoutRecipientEmail} type="submit">
             Зберегти виплату
           </Button>
         </form>

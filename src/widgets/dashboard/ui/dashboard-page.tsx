@@ -4,8 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { listCategories } from "@/entities/category/model/category-service";
 import { Category } from "@/entities/category/model/types";
-import { listAllWorkEntries, listUserWorkEntries } from "@/entities/work/model/work-service";
-import { WorkEntry } from "@/entities/work/model/types";
+import { listAllWorkEntries, listUserSalaryPayouts, listUserWorkEntries } from "@/entities/work/model/work-service";
+import { SalaryPayout, WorkEntry } from "@/entities/work/model/types";
 import { CreateWorkForm } from "@/features/work-entry/ui/create-work-form";
 import { AdminTools } from "@/features/admin/ui/admin-tools";
 import { useAuth } from "@/shared/lib/auth/auth-context";
@@ -27,6 +27,7 @@ export function DashboardPage() {
   const { showToast } = useToast();
   const [categories, setCategories] = useState<Category[]>([]);
   const [works, setWorks] = useState<WorkEntry[]>([]);
+  const [salaryPayouts, setSalaryPayouts] = useState<SalaryPayout[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -40,17 +41,20 @@ export function DashboardPage() {
 
     setDataLoading(true);
     try {
-      const [nextCategories, nextWorks] = await Promise.all([
+      const [nextCategories, nextWorks, nextSalaryPayouts] = await Promise.all([
         listCategories(),
         user.role === "admin" ? listAllWorkEntries() : listUserWorkEntries(user.uid),
+        user.role === "admin" ? Promise.resolve([]) : listUserSalaryPayouts(user.uid),
       ]);
 
       setCategories(nextCategories);
       setWorks(nextWorks);
+      setSalaryPayouts(nextSalaryPayouts);
     } catch (error) {
       console.error("Failed to load dashboard data from Firestore:", error);
       setCategories([]);
       setWorks([]);
+      setSalaryPayouts([]);
     } finally {
       setDataLoading(false);
     }
@@ -98,6 +102,13 @@ export function DashboardPage() {
     { key: "category", title: t("dashboard.categoryLabel"), render: (row) => row.categoryName },
     { key: "amount", title: t("dashboard.amountLabel"), render: (row) => row.amount.toFixed(2) },
   ];
+
+  const salarySummary = useMemo(() => {
+    const earned = works.reduce((acc, work) => acc + work.amount, 0);
+    const paid = salaryPayouts.reduce((acc, payout) => acc + payout.amount, 0);
+    const balance = earned - paid;
+    return { earned, paid, balance };
+  }, [salaryPayouts, works]);
 
   if (loading || !user) {
     return <CenteredLoader label={t("common.loadingProfile")} />;
@@ -178,6 +189,41 @@ export function DashboardPage() {
           </Button>
         </div>
       </section>
+
+      {user.role !== "admin" ? (
+        <section className={styles.panel}>
+          <h2>{t("dashboard.salarySummaryTitle")}</h2>
+          <div className={styles.summaryGrid}>
+            <div className={styles.summaryCard}>
+              <p className={styles.meta}>{t("dashboard.totalEarned")}</p>
+              <p className={styles.summaryValue}>{salarySummary.earned.toFixed(2)}</p>
+            </div>
+            <div className={styles.summaryCard}>
+              <p className={styles.meta}>{t("dashboard.totalPaid")}</p>
+              <p className={styles.summaryValue}>{salarySummary.paid.toFixed(2)}</p>
+            </div>
+            <div className={styles.summaryCard}>
+              <p className={styles.meta}>{t("dashboard.balance")}</p>
+              <p className={`${styles.summaryValue} ${salarySummary.balance >= 0 ? styles.positive : styles.negative}`}>
+                {salarySummary.balance.toFixed(2)}
+              </p>
+            </div>
+          </div>
+          <h3>{t("dashboard.payoutHistoryTitle")}</h3>
+          {salaryPayouts.length === 0 ? <p>{t("dashboard.noPayouts")}</p> : null}
+          <div className={styles.rows}>
+            {salaryPayouts.map((payout) => (
+              <div key={payout.id} className={styles.payoutRow}>
+                <div>
+                  <p className={styles.meta}>{payout.payoutDate}</p>
+                  <p>{payout.description}</p>
+                </div>
+                <p className={styles.negative}>-{payout.amount.toFixed(2)}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {user.role === "admin" ? <AdminTools adminUid={user.uid} works={works} onDataChanged={loadData} /> : null}
 

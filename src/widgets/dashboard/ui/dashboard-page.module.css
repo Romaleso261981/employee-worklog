@@ -54,6 +54,55 @@
   gap: 8px;
 }
 
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+}
+
+.summaryCard {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  background: #f8faff;
+  display: grid;
+  gap: 4px;
+}
+
+.summaryValue {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.meta {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.positive {
+  color: #179c3b;
+}
+
+.negative {
+  color: #ce2e2e;
+}
+
+.rows {
+  display: grid;
+  gap: 8px;
+}
+
+.payoutRow {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+}
+
 @media (min-width: 760px) {
   .filters {
     grid-template-columns: 1fr 220px;
