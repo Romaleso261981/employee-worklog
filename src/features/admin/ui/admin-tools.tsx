@@ -5,12 +5,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { addCategory } from "@/entities/category/model/category-service";
-import { createSalaryPayout, listAllSalaryPayouts, updateWorkAmount } from "@/entities/work/model/work-service";
+import { createSalaryPayout, listAllSalaryPayouts, updateWorkEntryAdmin } from "@/entities/work/model/work-service";
 import { SalaryPayout, WorkEntry } from "@/entities/work/model/types";
 import { Button } from "@/shared/ui/button/button";
 import { Input } from "@/shared/ui/input/input";
 import { type DateFilterPreset, matchesDateString } from "@/shared/lib/date-filter";
-import { amountSchema, categorySchema, salaryPayoutSchema } from "@/shared/lib/validation/schemas";
+import { categorySchema, salaryPayoutSchema, workAdminEditSchema } from "@/shared/lib/validation/schemas";
 import styles from "./admin-tools.module.css";
 
 const WORK_ROWS_PER_PAGE = 3;
@@ -329,7 +329,7 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
                 </div>
               ) : null}
               {paginatedWorksForEdit.map((work) => (
-                <AmountRow key={work.id} work={work} onDataChanged={onDataChanged} />
+                <AmountRow key={`${work.id}:${work.description}:${work.amount}`} work={work} onDataChanged={onDataChanged} />
               ))}
             </div>
             {filteredWorks.length === 0 ? <p className={styles.meta}>Немає робіт для обраного працівника</p> : null}
@@ -517,19 +517,26 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
 }
 
 function AmountRow({ work, onDataChanged }: { work: WorkEntry; onDataChanged: () => Promise<void> }) {
-  type AmountFormValues = z.output<typeof amountSchema>;
+  type EditFormValues = z.output<typeof workAdminEditSchema>;
+  const [isEditingDescription, setEditingDescription] = useState(false);
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors, isSubmitting },
-  } = useForm<z.input<typeof amountSchema>, unknown, AmountFormValues>({
-    resolver: zodResolver(amountSchema),
-    defaultValues: { amount: work.amount },
+  } = useForm<z.input<typeof workAdminEditSchema>, unknown, EditFormValues>({
+    resolver: zodResolver(workAdminEditSchema),
+    defaultValues: { amount: work.amount, description: work.description },
   });
 
+  useEffect(() => {
+    reset({ amount: work.amount, description: work.description });
+  }, [reset, work.amount, work.description]);
+
   const onSubmit = handleSubmit(async (values) => {
-    await updateWorkAmount(work.id, values.amount);
+    await updateWorkEntryAdmin(work.id, { amount: values.amount, description: values.description });
     await onDataChanged();
+    setEditingDescription(false);
   });
 
   return (
@@ -539,11 +546,49 @@ function AmountRow({ work, onDataChanged }: { work: WorkEntry; onDataChanged: ()
         <p className={styles.meta}>
           {work.workDate} - {work.categoryName}
         </p>
-        <p className={styles.workDescription}>{work.description}</p>
+        <div className={styles.descriptionRow}>
+          {!isEditingDescription ? (
+            <>
+              <p className={styles.workDescription}>{work.description}</p>
+              <button
+                type="button"
+                className={styles.iconButton}
+                aria-label="Редагувати опис"
+                onClick={() => {
+                  reset({ amount: work.amount, description: work.description });
+                  setEditingDescription(true);
+                }}
+              >
+                ✎
+              </button>
+            </>
+          ) : (
+            <div className={styles.descriptionEditor}>
+              <textarea className={styles.textarea} rows={2} {...register("description")} />
+              {errors.description ? <small className={styles.error}>{errors.description.message}</small> : null}
+              <div className={styles.editorActions}>
+                <Button disabled={isSubmitting} type="submit">
+                  Зберегти
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={isSubmitting}
+                  onClick={() => {
+                    reset({ amount: work.amount, description: work.description });
+                    setEditingDescription(false);
+                  }}
+                >
+                  Скасувати
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
       <div className={styles.amountGroup}>
         <input className={styles.amountInput} type="number" min={0} step="0.01" {...register("amount")} />
-        <Button disabled={isSubmitting} type="submit">
+        <Button disabled={isSubmitting || isEditingDescription} type="submit">
           Оновити
         </Button>
       </div>

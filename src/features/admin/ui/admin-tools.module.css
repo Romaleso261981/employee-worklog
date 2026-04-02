@@ -136,6 +136,39 @@
   overflow-wrap: anywhere;
 }
 
+.descriptionRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  gap: 8px;
+}
+
+.iconButton {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 10px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.iconButton:hover {
+  color: var(--text);
+  border-color: var(--primary);
+}
+
+.descriptionEditor {
+  display: grid;
+  gap: 8px;
+}
+
+.editorActions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
 .amountGroup {
   display: flex;
   gap: 8px;

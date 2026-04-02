@@ -49,6 +49,15 @@ export async function updateWorkAmount(workId: string, amount: number): Promise<
   });
 }
 
+export async function updateWorkEntryAdmin(workId: string, patch: { amount: number; description: string }): Promise<void> {
+  const db = getFirebaseDb();
+  await updateDoc(doc(db, "workEntries", workId), {
+    amount: patch.amount,
+    description: patch.description,
+    updatedAt: serverTimestamp(),
+  });
+}
+
 export async function createSalaryPayout(payload: CreateSalaryPayoutPayload): Promise<void> {
   const db = getFirebaseDb();
   const salaryPayoutsCollection = collection(db, "salaryPayouts");
