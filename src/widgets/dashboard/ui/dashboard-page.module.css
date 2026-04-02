@@ -138,8 +138,38 @@
   background: #fff;
 }
 
+.dateFilters {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  align-items: end;
+}
+
+.dateFilterLabel {
+  display: grid;
+  gap: 4px;
+}
+
+.dateFilterSpan {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.dateInput {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  background: #fff;
+  width: 100%;
+  min-width: 0;
+}
+
 @media (min-width: 760px) {
   .filters {
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
+  .dateFilters {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   }
 }

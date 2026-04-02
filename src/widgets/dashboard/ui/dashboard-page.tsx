@@ -21,6 +21,43 @@ import styles from "./dashboard-page.module.css";
 const PAGE_SIZE = 8;
 type SortField = "date" | "description" | "category" | "amount";
 type SortDirection = "desc" | "asc";
+type DateFilterPreset = "all" | "year" | "month" | "range";
+
+function matchesWorkDateFilter(
+  workDate: string,
+  preset: DateFilterPreset,
+  yearStr: string,
+  monthValue: string,
+  from: string,
+  to: string,
+): boolean {
+  if (preset === "all") {
+    return true;
+  }
+  if (preset === "year") {
+    const y = yearStr.trim();
+    if (!y) {
+      return true;
+    }
+    return workDate.startsWith(`${y}-`);
+  }
+  if (preset === "month") {
+    if (!monthValue) {
+      return true;
+    }
+    return workDate.startsWith(monthValue);
+  }
+  if (preset === "range") {
+    if (from && workDate < from) {
+      return false;
+    }
+    if (to && workDate > to) {
+      return false;
+    }
+    return true;
+  }
+  return true;
+}
 
 export function DashboardPage() {
   const router = useRouter();
@@ -38,6 +75,14 @@ export function DashboardPage() {
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [page, setPage] = useState(1);
+  const [dateFilterPreset, setDateFilterPreset] = useState<DateFilterPreset>("all");
+  const [dateFilterYear, setDateFilterYear] = useState(() => String(new Date().getFullYear()));
+  const [dateFilterMonth, setDateFilterMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
+  const [dateRangeFrom, setDateRangeFrom] = useState("");
+  const [dateRangeTo, setDateRangeTo] = useState("");
 
   const loadData = useCallback(async () => {
     if (!user) {
@@ -95,10 +140,28 @@ export function DashboardPage() {
         item.categoryName.toLowerCase().includes(search);
       const matchesCategory = categoryFilter ? item.categoryId === categoryFilter : true;
       const matchesWorker = workerFilter ? item.userEmail === workerFilter : true;
+      const matchesDate = matchesWorkDateFilter(
+        item.workDate,
+        dateFilterPreset,
+        dateFilterYear,
+        dateFilterMonth,
+        dateRangeFrom,
+        dateRangeTo,
+      );
 
-      return matchesSearch && matchesCategory && matchesWorker;
+      return matchesSearch && matchesCategory && matchesWorker && matchesDate;
     });
-  }, [works, searchTerm, categoryFilter, workerFilter]);
+  }, [
+    works,
+    searchTerm,
+    categoryFilter,
+    workerFilter,
+    dateFilterPreset,
+    dateFilterYear,
+    dateFilterMonth,
+    dateRangeFrom,
+    dateRangeTo,
+  ]);
 
   const filteredAmountTotal = useMemo(() => {
     return filteredWorks.reduce((acc, item) => acc + item.amount, 0);
@@ -271,6 +334,83 @@ export function DashboardPage() {
                 </option>
               ))}
             </select>
+          ) : null}
+        </div>
+
+        <div className={styles.dateFilters}>
+          <label className={styles.dateFilterLabel}>
+            <span className={styles.dateFilterSpan}>{t("dashboard.dateFilterMode")}</span>
+            <select
+              className={styles.select}
+              value={dateFilterPreset}
+              onChange={(event) => {
+                setDateFilterPreset(event.target.value as DateFilterPreset);
+                setPage(1);
+              }}
+            >
+              <option value="all">{t("dashboard.dateFilterAll")}</option>
+              <option value="year">{t("dashboard.dateFilterByYear")}</option>
+              <option value="month">{t("dashboard.dateFilterByMonth")}</option>
+              <option value="range">{t("dashboard.dateFilterByRange")}</option>
+            </select>
+          </label>
+          {dateFilterPreset === "year" ? (
+            <label className={styles.dateFilterLabel}>
+              <span className={styles.dateFilterSpan}>{t("dashboard.dateFilterYear")}</span>
+              <input
+                className={styles.dateInput}
+                type="number"
+                min={2000}
+                max={2100}
+                value={dateFilterYear}
+                onChange={(event) => {
+                  setDateFilterYear(event.target.value);
+                  setPage(1);
+                }}
+              />
+            </label>
+          ) : null}
+          {dateFilterPreset === "month" ? (
+            <label className={styles.dateFilterLabel}>
+              <span className={styles.dateFilterSpan}>{t("dashboard.dateFilterMonth")}</span>
+              <input
+                className={styles.dateInput}
+                type="month"
+                value={dateFilterMonth}
+                onChange={(event) => {
+                  setDateFilterMonth(event.target.value);
+                  setPage(1);
+                }}
+              />
+            </label>
+          ) : null}
+          {dateFilterPreset === "range" ? (
+            <>
+              <label className={styles.dateFilterLabel}>
+                <span className={styles.dateFilterSpan}>{t("dashboard.dateFilterFrom")}</span>
+                <input
+                  className={styles.dateInput}
+                  type="date"
+                  value={dateRangeFrom}
+                  onChange={(event) => {
+                    setDateRangeFrom(event.target.value);
+                    setPage(1);
+                  }}
+                />
+              </label>
+              <label className={styles.dateFilterLabel}>
+                <span className={styles.dateFilterSpan}>{t("dashboard.dateFilterTo")}</span>
+                <input
+                  className={styles.dateInput}
+                  type="date"
+                  value={dateRangeTo}
+                  onChange={(event) => {
+                    setDateRangeTo(event.target.value);
+                    setPage(1);
+                  }}
+                />
+              </label>
+            </>
           ) : null}
         </div>
 

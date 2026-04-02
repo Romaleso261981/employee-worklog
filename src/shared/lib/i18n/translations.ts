@@ -49,6 +49,15 @@ export const translations = {
       sortDirectionAsc: "Напрямок: зростання",
       sortDirectionDesc: "Напрямок: спадання",
       filteredTotalLabel: "Разом (за фільтром)",
+      dateFilterMode: "Фільтр дат",
+      dateFilterAll: "Усі дати",
+      dateFilterByYear: "За рік",
+      dateFilterByMonth: "За місяць",
+      dateFilterByRange: "Період",
+      dateFilterYear: "Рік",
+      dateFilterMonth: "Місяць",
+      dateFilterFrom: "Від",
+      dateFilterTo: "До",
     },
     workForm: {
       title: "Додати роботу",
@@ -110,6 +119,15 @@ export const translations = {
       sortDirectionAsc: "Direction: ascending",
       sortDirectionDesc: "Direction: descending",
       filteredTotalLabel: "Total (filtered)",
+      dateFilterMode: "Date filter",
+      dateFilterAll: "All dates",
+      dateFilterByYear: "By year",
+      dateFilterByMonth: "By month",
+      dateFilterByRange: "Date range",
+      dateFilterYear: "Year",
+      dateFilterMonth: "Month",
+      dateFilterFrom: "From",
+      dateFilterTo: "To",
     },
     workForm: {
       title: "Add work",
@@ -168,6 +186,15 @@ export type TranslationPath =
   | "dashboard.sortDirectionAsc"
   | "dashboard.sortDirectionDesc"
   | "dashboard.filteredTotalLabel"
+  | "dashboard.dateFilterMode"
+  | "dashboard.dateFilterAll"
+  | "dashboard.dateFilterByYear"
+  | "dashboard.dateFilterByMonth"
+  | "dashboard.dateFilterByRange"
+  | "dashboard.dateFilterYear"
+  | "dashboard.dateFilterMonth"
+  | "dashboard.dateFilterFrom"
+  | "dashboard.dateFilterTo"
   | "workForm.title"
   | "workForm.date"
   | "workForm.description"
