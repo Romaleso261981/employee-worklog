@@ -377,11 +377,6 @@ export function DashboardPage() {
         </div>
         <div className={styles.actions}>
           <LanguageSwitcher />
-          {user.role === "admin" || employeeView === "works" ? (
-            <Button type="button" onClick={() => setCreateModalOpen(true)}>
-              {t("dashboard.addWork")}
-            </Button>
-          ) : null}
           <Button
             variant="ghost"
             onClick={async () => {
