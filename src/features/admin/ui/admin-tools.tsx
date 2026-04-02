@@ -38,6 +38,10 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
   });
   const [workDateFrom, setWorkDateFrom] = useState("");
   const [workDateTo, setWorkDateTo] = useState("");
+  const [workCategoryFilter, setWorkCategoryFilter] = useState("");
+  const [workSearchTerm, setWorkSearchTerm] = useState("");
+  const [workSortField, setWorkSortField] = useState<"date" | "category" | "amount">("date");
+  const [workSortDirection, setWorkSortDirection] = useState<"asc" | "desc">("desc");
   const [payoutDatePreset, setPayoutDatePreset] = useState<DateFilterPreset>("all");
   const [payoutDateYear, setPayoutDateYear] = useState(() => String(new Date().getFullYear()));
   const [payoutDateMonth, setPayoutDateMonth] = useState(() => {
@@ -47,6 +51,7 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
   const [payoutDateFrom, setPayoutDateFrom] = useState("");
   const [payoutDateTo, setPayoutDateTo] = useState("");
   const [activeTab, setActiveTab] = useState<"works" | "payouts">("works");
+  const [exportFormat, setExportFormat] = useState<"csv" | "xlsx" | "pdf">("csv");
   type CategoryFormValues = z.output<typeof categorySchema>;
   type SalaryPayoutFormValues = z.output<typeof salaryPayoutSchema>;
 
@@ -124,25 +129,56 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
   }, [works, salaryPayouts]);
 
   const filteredWorks = useMemo(() => {
-    return selectedEmail ? works.filter((work) => work.userEmail === selectedEmail) : works;
-  }, [selectedEmail, works]);
+    const base = selectedEmail ? works.filter((work) => work.userEmail === selectedEmail) : works;
+    const search = workSearchTerm.trim().toLowerCase();
+    if (!search) {
+      return base;
+    }
+    return base.filter((work) => {
+      return (
+        work.description.toLowerCase().includes(search) ||
+        work.workDate.includes(workSearchTerm) ||
+        work.categoryName.toLowerCase().includes(search)
+      );
+    });
+  }, [selectedEmail, workSearchTerm, works]);
+
+  const workCategoryOptions = useMemo(() => {
+    return [...new Set(filteredWorks.map((w) => w.categoryName))].sort((a, b) => a.localeCompare(b));
+  }, [filteredWorks]);
 
   const dateFilteredWorks = useMemo(() => {
-    return filteredWorks.filter((work) =>
-      matchesDateString(work.workDate, workDatePreset, workDateYear, workDateMonth, workDateFrom, workDateTo),
-    );
-  }, [filteredWorks, workDatePreset, workDateYear, workDateMonth, workDateFrom, workDateTo]);
+    return filteredWorks.filter((work) => {
+      const matchesDate = matchesDateString(work.workDate, workDatePreset, workDateYear, workDateMonth, workDateFrom, workDateTo);
+      const normalizedCategoryFilter = workCategoryFilter.trim().toLowerCase();
+      const matchesCategory = normalizedCategoryFilter ? work.categoryName.trim().toLowerCase() === normalizedCategoryFilter : true;
+      return matchesDate && matchesCategory;
+    });
+  }, [filteredWorks, workDatePreset, workDateYear, workDateMonth, workDateFrom, workDateTo, workCategoryFilter]);
+
+  const sortedDateFilteredWorks = useMemo(() => {
+    const directionMultiplier = workSortDirection === "asc" ? 1 : -1;
+    return [...dateFilteredWorks].sort((a, b) => {
+      if (workSortField === "amount") {
+        return (a.amount - b.amount) * directionMultiplier;
+      }
+      if (workSortField === "category") {
+        return a.categoryName.localeCompare(b.categoryName) * directionMultiplier;
+      }
+      return a.workDate.localeCompare(b.workDate) * directionMultiplier;
+    });
+  }, [dateFilteredWorks, workSortDirection, workSortField]);
 
   const worksTabEarnedTotal = useMemo(() => {
     return dateFilteredWorks.reduce((acc, work) => acc + work.amount, 0);
   }, [dateFilteredWorks]);
 
-  const worksPageCount = Math.max(1, Math.ceil(dateFilteredWorks.length / WORK_ROWS_PER_PAGE));
+  const worksPageCount = Math.max(1, Math.ceil(sortedDateFilteredWorks.length / WORK_ROWS_PER_PAGE));
 
   const paginatedWorksForEdit = useMemo(() => {
     const from = (worksPage - 1) * WORK_ROWS_PER_PAGE;
-    return dateFilteredWorks.slice(from, from + WORK_ROWS_PER_PAGE);
-  }, [dateFilteredWorks, worksPage]);
+    return sortedDateFilteredWorks.slice(from, from + WORK_ROWS_PER_PAGE);
+  }, [sortedDateFilteredWorks, worksPage]);
 
   const filteredPayouts = useMemo(() => {
     return selectedEmail ? salaryPayouts.filter((payout) => payout.userEmail === selectedEmail) : salaryPayouts;
@@ -176,7 +212,11 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
 
   useEffect(() => {
     setWorksPage(1);
-  }, [workDatePreset, workDateYear, workDateMonth, workDateFrom, workDateTo]);
+  }, [workDatePreset, workDateYear, workDateMonth, workDateFrom, workDateTo, workCategoryFilter, workSearchTerm]);
+
+  useEffect(() => {
+    setWorksPage(1);
+  }, [workSortField, workSortDirection]);
 
   useEffect(() => {
     setPayoutsPage((prev) => Math.min(prev, payoutsPageCount));
@@ -192,6 +232,18 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
     const balance = earned - paid;
     return { earned, paid, balance };
   }, [filteredPayouts, filteredWorks]);
+
+  const exportData = useMemo(() => {
+    const earned = dateFilteredWorks.reduce((acc, work) => acc + work.amount, 0);
+    const paid = dateFilteredPayouts.reduce((acc, payout) => acc + payout.amount, 0);
+    const balance = earned - paid;
+
+    return {
+      works: sortedDateFilteredWorks,
+      payouts: dateFilteredPayouts,
+      summary: { earned, paid, balance },
+    };
+  }, [dateFilteredPayouts, dateFilteredWorks, sortedDateFilteredWorks]);
 
   const onSalarySubmit = handleSalarySubmit(async (values) => {
     setSalaryError(null);
@@ -236,21 +288,21 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
     ].map(escapeCsv).join(","));
     lines.push([
       selectedEmail || "Усі працівники",
-      summary.earned.toFixed(2),
-      summary.paid.toFixed(2),
-      summary.balance.toFixed(2),
+      exportData.summary.earned.toFixed(2),
+      exportData.summary.paid.toFixed(2),
+      exportData.summary.balance.toFixed(2),
     ].map(escapeCsv).join(","));
     lines.push("");
 
     lines.push(["Тип", "Email", "Дата", "Опис", "Категорія", "Сума"].map(escapeCsv).join(","));
-    filteredWorks.forEach((work) => {
+    exportData.works.forEach((work) => {
       lines.push(
         ["Робота", work.userEmail, work.workDate, work.description, work.categoryName, work.amount.toFixed(2)]
           .map(escapeCsv)
           .join(","),
       );
     });
-    filteredPayouts.forEach((payout) => {
+    exportData.payouts.forEach((payout) => {
       lines.push(
         ["Виплата", payout.userEmail, payout.payoutDate, payout.description, "-", `-${payout.amount.toFixed(2)}`]
           .map(escapeCsv)
@@ -269,6 +321,197 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  const exportXlsx = async () => {
+    const XLSX = await import("xlsx");
+
+    const wb = XLSX.utils.book_new();
+    const safeEmail = (selectedEmail || "all-workers").replaceAll(/[^a-z0-9@._-]/gi, "_");
+
+    const workPeriodLabel =
+      workDatePreset === "all"
+        ? "all"
+        : workDatePreset === "year"
+          ? `year:${workDateYear}`
+          : workDatePreset === "month"
+            ? `month:${workDateMonth}`
+            : `range:${workDateFrom || "-"}..${workDateTo || "-"}`;
+    const payoutPeriodLabel =
+      payoutDatePreset === "all"
+        ? "all"
+        : payoutDatePreset === "year"
+          ? `year:${payoutDateYear}`
+          : payoutDatePreset === "month"
+            ? `month:${payoutDateMonth}`
+            : `range:${payoutDateFrom || "-"}..${payoutDateTo || "-"}`;
+
+    // Put Works first so Excel opens the "data" tab by default.
+    const wsWorks = XLSX.utils.aoa_to_sheet([
+      ["Дата", "Хто робив", "Категорія", "Опис", "Вартість"],
+      ...exportData.works.map((w) => [w.workDate, w.userEmail, w.categoryName, w.description, Number(w.amount.toFixed(2))]),
+    ]);
+    XLSX.utils.book_append_sheet(wb, wsWorks, "Works");
+
+    const wsPayouts = XLSX.utils.aoa_to_sheet([
+      ["Дата", "Хто", "Опис", "Сума (виплата)"],
+      ...exportData.payouts.map((p) => [p.payoutDate, p.userEmail, p.description, Number(p.amount.toFixed(2))]),
+    ]);
+    XLSX.utils.book_append_sheet(wb, wsPayouts, "Payouts");
+
+    const wsSummary = XLSX.utils.aoa_to_sheet([
+      ["Працівник", "Період робіт", "Період виплат", "Зароблено", "Виплачено", "Залишок"],
+      [
+        selectedEmail || "Усі працівники",
+        workPeriodLabel,
+        payoutPeriodLabel,
+        Number(exportData.summary.earned.toFixed(2)),
+        Number(exportData.summary.paid.toFixed(2)),
+        Number(exportData.summary.balance.toFixed(2)),
+      ],
+    ]);
+    XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
+
+    XLSX.writeFile(wb, `salary-report-${safeEmail}.xlsx`);
+  };
+
+  const exportPdf = async () => {
+    if (!selectedEmail) {
+      setSalaryError("Для PDF оберіть працівника (email) у фільтрі зверху");
+      return;
+    }
+
+    const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
+
+    const pdf = await PDFDocument.create();
+    const font = await pdf.embedFont(StandardFonts.Helvetica);
+    const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
+
+    const pageMargin = 40;
+    const lineHeight = 14;
+    const fontSize = 11;
+    const headingSize = 14;
+
+    const wrapText = (text: string, maxChars: number) => {
+      const words = text.split(/\s+/).filter(Boolean);
+      const lines: string[] = [];
+      let cur = "";
+      for (const w of words) {
+        const next = cur ? `${cur} ${w}` : w;
+        if (next.length > maxChars) {
+          if (cur) lines.push(cur);
+          cur = w;
+        } else {
+          cur = next;
+        }
+      }
+      if (cur) lines.push(cur);
+      return lines;
+    };
+
+    const addPage = () => pdf.addPage([595.28, 841.89]); // A4
+    let page = addPage();
+    let y = page.getHeight() - pageMargin;
+
+    const drawLine = (text: string, bold = false, color = rgb(0.09, 0.13, 0.2)) => {
+      page.drawText(text, {
+        x: pageMargin,
+        y,
+        size: bold ? headingSize : fontSize,
+        font: bold ? fontBold : font,
+        color,
+      });
+      y -= bold ? lineHeight + 4 : lineHeight;
+      if (y < pageMargin + lineHeight * 2) {
+        page = addPage();
+        y = page.getHeight() - pageMargin;
+      }
+    };
+
+    drawLine("Salary statement", true);
+    drawLine(`Worker: ${selectedEmail}`);
+    const workPeriodText =
+      workDatePreset === "all"
+        ? "Work period: all"
+        : workDatePreset === "year"
+          ? `Work period: year ${workDateYear}`
+          : workDatePreset === "month"
+            ? `Work period: month ${workDateMonth}`
+            : `Work period: ${workDateFrom || "-"} .. ${workDateTo || "-"}`;
+    const payoutPeriodText =
+      payoutDatePreset === "all"
+        ? "Payout period: all"
+        : payoutDatePreset === "year"
+          ? `Payout period: year ${payoutDateYear}`
+          : payoutDatePreset === "month"
+            ? `Payout period: month ${payoutDateMonth}`
+            : `Payout period: ${payoutDateFrom || "-"} .. ${payoutDateTo || "-"}`;
+    drawLine(workPeriodText);
+    drawLine(payoutPeriodText);
+    drawLine(`Earned: ${exportData.summary.earned.toFixed(2)}`);
+    drawLine(`Paid: ${exportData.summary.paid.toFixed(2)}`);
+    drawLine(
+      `Balance: ${exportData.summary.balance.toFixed(2)}`,
+      false,
+      exportData.summary.balance >= 0 ? rgb(0.09, 0.61, 0.23) : rgb(0.81, 0.18, 0.18),
+    );
+    y -= 6;
+
+    drawLine("Works", true);
+    if (exportData.works.length === 0) {
+      drawLine("No work entries.");
+    } else {
+      drawLine("Date | Category | Amount", false, rgb(0.35, 0.39, 0.46));
+      for (const w of exportData.works) {
+        drawLine(`${w.workDate} | ${w.categoryName} | ${w.amount.toFixed(2)}`);
+        const descLines = wrapText(w.description, 90).slice(0, 4);
+        for (const dl of descLines) {
+          drawLine(`  ${dl}`);
+        }
+        y -= 4;
+      }
+    }
+
+    drawLine("Payouts", true);
+    if (exportData.payouts.length === 0) {
+      drawLine("No payouts.");
+    } else {
+      drawLine("Date | Amount", false, rgb(0.35, 0.39, 0.46));
+      for (const p of exportData.payouts) {
+        drawLine(`${p.payoutDate} | -${p.amount.toFixed(2)}`);
+        const descLines = wrapText(p.description, 95).slice(0, 4);
+        for (const dl of descLines) {
+          drawLine(`  ${dl}`);
+        }
+        y -= 4;
+      }
+    }
+
+    const bytes = await pdf.save();
+    const out = Uint8Array.from(bytes);
+    const blob = new Blob([out], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const safeEmail = selectedEmail.replaceAll(/[^a-z0-9@._-]/gi, "_");
+    link.href = url;
+    link.download = `salary-statement-${safeEmail}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExport = async () => {
+    setSalaryError(null);
+    if (exportFormat === "csv") {
+      exportCsv();
+      return;
+    }
+    if (exportFormat === "xlsx") {
+      await exportXlsx();
+      return;
+    }
+    await exportPdf();
   };
 
   return (
@@ -318,8 +561,13 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
           </div>
         </div>
         <div className={styles.actionsRow}>
-          <Button type="button" variant="ghost" onClick={exportCsv}>
-            Експорт у CSV
+          <select className={styles.select} value={exportFormat} onChange={(e) => setExportFormat(e.target.value as typeof exportFormat)}>
+            <option value="csv">CSV</option>
+            <option value="xlsx">Excel (.xlsx)</option>
+            <option value="pdf">PDF (statement)</option>
+          </select>
+          <Button type="button" variant="ghost" onClick={handleExport}>
+            Експорт
           </Button>
         </div>
 
@@ -344,6 +592,17 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
           <>
             <div className={styles.rows}>
               <h3>Роботи</h3>
+              <div className={styles.payoutDateFilters}>
+                <label className={styles.payoutDateFilterLabel}>
+                  <span>Пошук</span>
+                  <input
+                    className={styles.dateInput}
+                    value={workSearchTerm}
+                    onChange={(event) => setWorkSearchTerm(event.target.value)}
+                    placeholder="Опис / дата / категорія"
+                  />
+                </label>
+              </div>
               <div className={styles.payoutDateFilters}>
                 <label className={styles.payoutDateFilterLabel}>
                   <span>Фільтр дат</span>
@@ -405,6 +664,44 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
                   </>
                 ) : null}
               </div>
+              <div className={styles.payoutDateFilters}>
+                <label className={styles.payoutDateFilterLabel}>
+                  <span>Категорія</span>
+                  <select
+                    className={styles.select}
+                    value={workCategoryFilter}
+                    onChange={(event) => setWorkCategoryFilter(event.target.value)}
+                  >
+                    <option value="">Усі категорії</option>
+                    {workCategoryOptions.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <div className={styles.payoutDateFilters}>
+                <label className={styles.payoutDateFilterLabel}>
+                  <span>Сортування</span>
+                  <select className={styles.select} value={workSortField} onChange={(e) => setWorkSortField(e.target.value as typeof workSortField)}>
+                    <option value="date">Дата</option>
+                    <option value="category">Категорія</option>
+                    <option value="amount">Сума</option>
+                  </select>
+                </label>
+                <label className={styles.payoutDateFilterLabel}>
+                  <span>Напрямок</span>
+                  <select
+                    className={styles.select}
+                    value={workSortDirection}
+                    onChange={(e) => setWorkSortDirection(e.target.value as typeof workSortDirection)}
+                  >
+                    <option value="desc">Спадання</option>
+                    <option value="asc">Зростання</option>
+                  </select>
+                </label>
+              </div>
               {filteredWorks.length > 0 ? (
                 <div className={styles.worksTotalBanner} role="status">
                   <span className={styles.worksTotalLabel}>Разом зароблено (за фільтром)</span>
@@ -417,7 +714,7 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
             </div>
             {filteredWorks.length === 0 ? <p className={styles.meta}>Немає робіт для обраного працівника</p> : null}
             {filteredWorks.length > 0 && dateFilteredWorks.length === 0 ? <p className={styles.meta}>Немає робіт за обраний період</p> : null}
-            {dateFilteredWorks.length > WORK_ROWS_PER_PAGE ? (
+            {sortedDateFilteredWorks.length > WORK_ROWS_PER_PAGE ? (
               <div className={styles.pagination}>
                 <Button
                   variant="ghost"
