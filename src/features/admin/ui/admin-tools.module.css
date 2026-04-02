@@ -144,6 +144,30 @@
   font-size: 14px;
 }
 
+.worksTotalBanner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, #e8eeff 0%, #dce6ff 100%);
+  border: 2px solid var(--primary);
+  border-radius: 12px;
+}
+
+.worksTotalLabel {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.worksTotalValue {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+}
+
 .payoutsTotalBanner {
   display: flex;
   flex-wrap: wrap;

@@ -315,6 +315,13 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
         </form>
 
         <div className={styles.rows}>
+          <h3>Роботи</h3>
+          {filteredWorks.length > 0 ? (
+            <div className={styles.worksTotalBanner} role="status">
+              <span className={styles.worksTotalLabel}>Разом зароблено (за фільтром)</span>
+              <strong className={styles.worksTotalValue}>{summary.earned.toFixed(2)}</strong>
+            </div>
+          ) : null}
           {paginatedWorksForEdit.map((work) => (
             <AmountRow key={work.id} work={work} onDataChanged={onDataChanged} />
           ))}
