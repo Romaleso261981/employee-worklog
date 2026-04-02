@@ -30,6 +30,14 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
   const [payoutRecipientEmail, setPayoutRecipientEmail] = useState("");
   const [worksPage, setWorksPage] = useState(1);
   const [payoutsPage, setPayoutsPage] = useState(1);
+  const [workDatePreset, setWorkDatePreset] = useState<DateFilterPreset>("all");
+  const [workDateYear, setWorkDateYear] = useState(() => String(new Date().getFullYear()));
+  const [workDateMonth, setWorkDateMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
+  const [workDateFrom, setWorkDateFrom] = useState("");
+  const [workDateTo, setWorkDateTo] = useState("");
   const [payoutDatePreset, setPayoutDatePreset] = useState<DateFilterPreset>("all");
   const [payoutDateYear, setPayoutDateYear] = useState(() => String(new Date().getFullYear()));
   const [payoutDateMonth, setPayoutDateMonth] = useState(() => {
@@ -119,12 +127,22 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
     return selectedEmail ? works.filter((work) => work.userEmail === selectedEmail) : works;
   }, [selectedEmail, works]);
 
-  const worksPageCount = Math.max(1, Math.ceil(filteredWorks.length / WORK_ROWS_PER_PAGE));
+  const dateFilteredWorks = useMemo(() => {
+    return filteredWorks.filter((work) =>
+      matchesDateString(work.workDate, workDatePreset, workDateYear, workDateMonth, workDateFrom, workDateTo),
+    );
+  }, [filteredWorks, workDatePreset, workDateYear, workDateMonth, workDateFrom, workDateTo]);
+
+  const worksTabEarnedTotal = useMemo(() => {
+    return dateFilteredWorks.reduce((acc, work) => acc + work.amount, 0);
+  }, [dateFilteredWorks]);
+
+  const worksPageCount = Math.max(1, Math.ceil(dateFilteredWorks.length / WORK_ROWS_PER_PAGE));
 
   const paginatedWorksForEdit = useMemo(() => {
     const from = (worksPage - 1) * WORK_ROWS_PER_PAGE;
-    return filteredWorks.slice(from, from + WORK_ROWS_PER_PAGE);
-  }, [filteredWorks, worksPage]);
+    return dateFilteredWorks.slice(from, from + WORK_ROWS_PER_PAGE);
+  }, [dateFilteredWorks, worksPage]);
 
   const filteredPayouts = useMemo(() => {
     return selectedEmail ? salaryPayouts.filter((payout) => payout.userEmail === selectedEmail) : salaryPayouts;
@@ -155,6 +173,10 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
   useEffect(() => {
     setWorksPage((prev) => Math.min(prev, worksPageCount));
   }, [filteredWorks.length, worksPageCount]);
+
+  useEffect(() => {
+    setWorksPage(1);
+  }, [workDatePreset, workDateYear, workDateMonth, workDateFrom, workDateTo]);
 
   useEffect(() => {
     setPayoutsPage((prev) => Math.min(prev, payoutsPageCount));
@@ -322,10 +344,71 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
           <>
             <div className={styles.rows}>
               <h3>Роботи</h3>
+              <div className={styles.payoutDateFilters}>
+                <label className={styles.payoutDateFilterLabel}>
+                  <span>Фільтр дат</span>
+                  <select
+                    className={styles.select}
+                    value={workDatePreset}
+                    onChange={(event) => setWorkDatePreset(event.target.value as DateFilterPreset)}
+                  >
+                    <option value="all">Усі дати</option>
+                    <option value="year">За рік</option>
+                    <option value="month">За місяць</option>
+                    <option value="range">Період</option>
+                  </select>
+                </label>
+                {workDatePreset === "year" ? (
+                  <label className={styles.payoutDateFilterLabel}>
+                    <span>Рік</span>
+                    <input
+                      className={styles.dateInput}
+                      type="number"
+                      min={2000}
+                      max={2100}
+                      value={workDateYear}
+                      onChange={(event) => setWorkDateYear(event.target.value)}
+                    />
+                  </label>
+                ) : null}
+                {workDatePreset === "month" ? (
+                  <label className={styles.payoutDateFilterLabel}>
+                    <span>Місяць</span>
+                    <input
+                      className={styles.dateInput}
+                      type="month"
+                      value={workDateMonth}
+                      onChange={(event) => setWorkDateMonth(event.target.value)}
+                    />
+                  </label>
+                ) : null}
+                {workDatePreset === "range" ? (
+                  <>
+                    <label className={styles.payoutDateFilterLabel}>
+                      <span>Від</span>
+                      <input
+                        className={styles.dateInput}
+                        type="date"
+                        value={workDateFrom}
+                        onChange={(event) => setWorkDateFrom(event.target.value)}
+                      />
+                    </label>
+                    <label className={styles.payoutDateFilterLabel}>
+                      <span>До</span>
+                      <input
+                        className={styles.dateInput}
+                        type="date"
+                        value={workDateTo}
+                        onChange={(event) => setWorkDateTo(event.target.value)}
+                      />
+                    </label>
+                  </>
+                ) : null}
+              </div>
               {filteredWorks.length > 0 ? (
                 <div className={styles.worksTotalBanner} role="status">
                   <span className={styles.worksTotalLabel}>Разом зароблено (за фільтром)</span>
-                  <strong className={styles.worksTotalValue}>{summary.earned.toFixed(2)}</strong>
+                  <strong className={styles.worksTotalValue}>{worksTabEarnedTotal.toFixed(2)}</strong>
                 </div>
               ) : null}
               {paginatedWorksForEdit.map((work) => (
@@ -333,7 +416,8 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
               ))}
             </div>
             {filteredWorks.length === 0 ? <p className={styles.meta}>Немає робіт для обраного працівника</p> : null}
-            {filteredWorks.length > WORK_ROWS_PER_PAGE ? (
+            {filteredWorks.length > 0 && dateFilteredWorks.length === 0 ? <p className={styles.meta}>Немає робіт за обраний період</p> : null}
+            {dateFilteredWorks.length > WORK_ROWS_PER_PAGE ? (
               <div className={styles.pagination}>
                 <Button
                   variant="ghost"
