@@ -52,6 +52,7 @@ export function CreateWorkForm({ categories, onCreated, onSuccess }: Props) {
     }
 
     try {
+      const resolvedAmount = user.role === "admin" ? values.amount : 0;
       await createWorkEntry({
         userId: user.uid,
         userEmail: user.email,
@@ -59,7 +60,7 @@ export function CreateWorkForm({ categories, onCreated, onSuccess }: Props) {
         description: values.description,
         categoryId: selectedCategory.id,
         categoryName: selectedCategory.name,
-        amount: values.amount,
+        amount: resolvedAmount,
       });
       reset({ workDate: "", description: "", categoryId: "", amount: 0 });
       await onCreated();
@@ -90,7 +91,9 @@ export function CreateWorkForm({ categories, onCreated, onSuccess }: Props) {
         </select>
         {errors.categoryId ? <small className={styles.error}>{errors.categoryId.message}</small> : null}
       </label>
-      <Input label={t("workForm.amountOptional")} type="number" min={0} step="0.01" {...register("amount")} error={errors.amount?.message} />
+      {user?.role === "admin" ? (
+        <Input label={t("workForm.amountOptional")} type="number" min={0} step="0.01" {...register("amount")} error={errors.amount?.message} />
+      ) : null}
       {submitError ? <p className={styles.error}>{submitError}</p> : null}
       <Button disabled={isSubmitting} type="submit">
         {t("workForm.saveWork")}

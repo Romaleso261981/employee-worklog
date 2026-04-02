@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { listCategories } from "@/entities/category/model/category-service";
 import { Category } from "@/entities/category/model/types";
-import { listAllSalaryPayouts, listAllWorkEntries, listUserSalaryPayouts, listUserWorkEntries } from "@/entities/work/model/work-service";
+import { createSalaryPayout, listAllSalaryPayouts, listAllWorkEntries, listUserSalaryPayouts, listUserWorkEntries } from "@/entities/work/model/work-service";
 import { SalaryPayout, WorkEntry } from "@/entities/work/model/types";
 import { CreateWorkForm } from "@/features/work-entry/ui/create-work-form";
 import { AdminTools } from "@/features/admin/ui/admin-tools";
@@ -41,6 +41,7 @@ export function DashboardPage() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [page, setPage] = useState(1);
   const [adminView, setAdminView] = useState<"works" | "payouts" | "admin">("works");
+  const [employeeView, setEmployeeView] = useState<"works" | "waste">("works");
   const [dateFilterPreset, setDateFilterPreset] = useState<DateFilterPreset>("all");
   const [dateFilterYear, setDateFilterYear] = useState(() => String(new Date().getFullYear()));
   const [dateFilterMonth, setDateFilterMonth] = useState(() => {
@@ -62,6 +63,11 @@ export function DashboardPage() {
   });
   const [payoutDateRangeFrom, setPayoutDateRangeFrom] = useState("");
   const [payoutDateRangeTo, setPayoutDateRangeTo] = useState("");
+  const [wasteDate, setWasteDate] = useState("");
+  const [wasteDescription, setWasteDescription] = useState("");
+  const [wasteAmount, setWasteAmount] = useState("0");
+  const [wasteSubmitting, setWasteSubmitting] = useState(false);
+  const [wasteError, setWasteError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     if (!user) {
@@ -348,6 +354,42 @@ export function DashboardPage() {
     },
   ];
 
+  const employeePayoutColumns: TableColumn<SalaryPayout>[] = [
+    payoutColumns[0],
+    payoutColumns[2],
+    payoutColumns[3],
+  ];
+
+  const onWasteSubmit = async () => {
+    if (!user) {
+      return;
+    }
+    setWasteError(null);
+    const amount = Number(wasteAmount);
+    if (!wasteDate || !wasteDescription.trim() || !Number.isFinite(amount) || amount <= 0) {
+      setWasteError("Заповніть дату, опис і суму більше 0.");
+      return;
+    }
+    try {
+      setWasteSubmitting(true);
+      await createSalaryPayout({
+        userId: user.uid,
+        userEmail: user.email,
+        payoutDate: wasteDate,
+        description: wasteDescription.trim(),
+        amount,
+      });
+      setWasteDate("");
+      setWasteDescription("");
+      setWasteAmount("0");
+      await loadData();
+    } catch {
+      setWasteError("Не вдалося додати витрату.");
+    } finally {
+      setWasteSubmitting(false);
+    }
+  };
+
   const salarySummary = useMemo(() => {
     const earned = works.reduce((acc, work) => acc + work.amount, 0);
     const paid = salaryPayouts.reduce((acc, payout) => acc + payout.amount, 0);
@@ -370,9 +412,11 @@ export function DashboardPage() {
         </div>
         <div className={styles.actions}>
           <LanguageSwitcher />
-          <Button type="button" onClick={() => setCreateModalOpen(true)}>
-            {t("dashboard.addWork")}
-          </Button>
+          {user.role === "admin" || employeeView === "works" ? (
+            <Button type="button" onClick={() => setCreateModalOpen(true)}>
+              {t("dashboard.addWork")}
+            </Button>
+          ) : null}
           <Button
             variant="ghost"
             onClick={async () => {
@@ -413,7 +457,28 @@ export function DashboardPage() {
         </section>
       ) : null}
 
-      {user.role !== "admin" || adminView === "works" ? (
+      {user.role !== "admin" ? (
+        <section className={styles.panel}>
+          <div className={styles.adminTabs}>
+            <button
+              type="button"
+              className={`${styles.adminTabButton} ${employeeView === "works" ? styles.adminTabButtonActive : ""}`}
+              onClick={() => setEmployeeView("works")}
+            >
+              Роботи
+            </button>
+            <button
+              type="button"
+              className={`${styles.adminTabButton} ${employeeView === "waste" ? styles.adminTabButtonActive : ""}`}
+              onClick={() => setEmployeeView("waste")}
+            >
+              Витрати
+            </button>
+          </div>
+        </section>
+      ) : null}
+
+      {(user.role === "admin" && adminView === "works") || (user.role !== "admin" && employeeView === "works") ? (
         <section className={styles.panel}>
         <h2>{t("dashboard.works")}</h2>
         <div className={styles.filters}>
@@ -566,9 +631,36 @@ export function DashboardPage() {
         </section>
       ) : null}
 
-      {user.role === "admin" && adminView === "payouts" ? (
+      {(user.role === "admin" && adminView === "payouts") || (user.role !== "admin" && employeeView === "waste") ? (
         <section className={styles.panel}>
-          <h2>Виплачені зарплати</h2>
+          <h2>{user.role === "admin" ? "Виплачені зарплати" : "Витрати"}</h2>
+          {user.role !== "admin" ? (
+            <div className={styles.summaryCard}>
+              <label className={styles.dateFilterLabel}>
+                <span className={styles.dateFilterSpan}>Дата</span>
+                <input className={styles.dateInput} type="date" value={wasteDate} onChange={(event) => setWasteDate(event.target.value)} />
+              </label>
+              <label className={styles.dateFilterLabel}>
+                <span className={styles.dateFilterSpan}>Опис</span>
+                <input className={styles.dateInput} value={wasteDescription} onChange={(event) => setWasteDescription(event.target.value)} />
+              </label>
+              <label className={styles.dateFilterLabel}>
+                <span className={styles.dateFilterSpan}>Сума</span>
+                <input
+                  className={styles.dateInput}
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={wasteAmount}
+                  onChange={(event) => setWasteAmount(event.target.value)}
+                />
+              </label>
+              {wasteError ? <p className={styles.negative}>{wasteError}</p> : null}
+              <Button type="button" onClick={onWasteSubmit} disabled={wasteSubmitting}>
+                Додати витрату
+              </Button>
+            </div>
+          ) : null}
           <div className={styles.filters}>
             <input
               className={styles.search}
@@ -579,21 +671,23 @@ export function DashboardPage() {
               }}
               placeholder={t("common.search")}
             />
-            <select
-              className={styles.select}
-              value={payoutWorkerFilter}
-              onChange={(event) => {
-                setPayoutWorkerFilter(event.target.value);
-                setPayoutPage(1);
-              }}
-            >
-              <option value="">{t("dashboard.allWorkers")}</option>
-              {payoutWorkerEmails.map((email) => (
-                <option key={email} value={email}>
-                  {email}
-                </option>
-              ))}
-            </select>
+            {user.role === "admin" ? (
+              <select
+                className={styles.select}
+                value={payoutWorkerFilter}
+                onChange={(event) => {
+                  setPayoutWorkerFilter(event.target.value);
+                  setPayoutPage(1);
+                }}
+              >
+                <option value="">{t("dashboard.allWorkers")}</option>
+                {payoutWorkerEmails.map((email) => (
+                  <option key={email} value={email}>
+                    {email}
+                  </option>
+                ))}
+              </select>
+            ) : null}
           </div>
 
           <div className={styles.dateFilters}>
@@ -680,7 +774,7 @@ export function DashboardPage() {
             </div>
           ) : null}
           {!dataLoading && sortedPayoutsAdmin.length === 0 ? <p>Виплат не знайдено.</p> : null}
-          <Table columns={payoutColumns} rows={paginatedPayoutsAdmin} rowKey={(row) => row.id} />
+          <Table columns={user.role === "admin" ? payoutColumns : employeePayoutColumns} rows={paginatedPayoutsAdmin} rowKey={(row) => row.id} />
 
           <div className={styles.pagination}>
             <Button variant="ghost" type="button" disabled={payoutPage === 1} onClick={() => setPayoutPage((prev) => Math.max(1, prev - 1))}>
@@ -697,41 +791,6 @@ export function DashboardPage() {
             >
               {t("common.next")}
             </Button>
-          </div>
-        </section>
-      ) : null}
-
-      {user.role !== "admin" ? (
-        <section className={styles.panel}>
-          <h2>{t("dashboard.salarySummaryTitle")}</h2>
-          <div className={styles.summaryGrid}>
-            <div className={styles.summaryCard}>
-              <p className={styles.meta}>{t("dashboard.totalEarned")}</p>
-              <p className={styles.summaryValue}>{salarySummary.earned.toFixed(2)}</p>
-            </div>
-            <div className={styles.summaryCard}>
-              <p className={styles.meta}>{t("dashboard.totalPaid")}</p>
-              <p className={styles.summaryValue}>{salarySummary.paid.toFixed(2)}</p>
-            </div>
-            <div className={styles.summaryCard}>
-              <p className={styles.meta}>{t("dashboard.balance")}</p>
-              <p className={`${styles.summaryValue} ${salarySummary.balance >= 0 ? styles.positive : styles.negative}`}>
-                {salarySummary.balance.toFixed(2)}
-              </p>
-            </div>
-          </div>
-          <h3>{t("dashboard.payoutHistoryTitle")}</h3>
-          {salaryPayouts.length === 0 ? <p>{t("dashboard.noPayouts")}</p> : null}
-          <div className={styles.rows}>
-            {salaryPayouts.map((payout) => (
-              <div key={payout.id} className={styles.payoutRow}>
-                <div>
-                  <p className={styles.meta}>{payout.payoutDate}</p>
-                  <p>{payout.description}</p>
-                </div>
-                <p className={styles.negative}>-{payout.amount.toFixed(2)}</p>
-              </div>
-            ))}
           </div>
         </section>
       ) : null}

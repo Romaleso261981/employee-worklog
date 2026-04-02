@@ -39,7 +39,11 @@ service cloud.firestore {
         isAdmin()
       );
 
-      allow create, update, delete: if isAdmin();
+      allow create: if isAdmin() || (
+        isAuth() &&
+        request.resource.data.userId == request.auth.uid
+      );
+      allow update, delete: if isAdmin();
     }
   }
 }
