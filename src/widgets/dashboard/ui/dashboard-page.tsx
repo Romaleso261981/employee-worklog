@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { listCategories } from "@/entities/category/model/category-service";
 import { Category } from "@/entities/category/model/types";
-import { listAllWorkEntries, listUserSalaryPayouts, listUserWorkEntries } from "@/entities/work/model/work-service";
+import { listAllSalaryPayouts, listAllWorkEntries, listUserSalaryPayouts, listUserWorkEntries } from "@/entities/work/model/work-service";
 import { SalaryPayout, WorkEntry } from "@/entities/work/model/types";
 import { CreateWorkForm } from "@/features/work-entry/ui/create-work-form";
 import { AdminTools } from "@/features/admin/ui/admin-tools";
@@ -22,6 +22,7 @@ import styles from "./dashboard-page.module.css";
 const PAGE_SIZE = 8;
 type SortField = "date" | "description" | "category" | "amount";
 type SortDirection = "desc" | "asc";
+type PayoutSortField = "date" | "description" | "amount" | "worker";
 
 export function DashboardPage() {
   const router = useRouter();
@@ -39,6 +40,7 @@ export function DashboardPage() {
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [page, setPage] = useState(1);
+  const [adminView, setAdminView] = useState<"works" | "payouts" | "admin">("works");
   const [dateFilterPreset, setDateFilterPreset] = useState<DateFilterPreset>("all");
   const [dateFilterYear, setDateFilterYear] = useState(() => String(new Date().getFullYear()));
   const [dateFilterMonth, setDateFilterMonth] = useState(() => {
@@ -47,6 +49,19 @@ export function DashboardPage() {
   });
   const [dateRangeFrom, setDateRangeFrom] = useState("");
   const [dateRangeTo, setDateRangeTo] = useState("");
+  const [payoutSearchTerm, setPayoutSearchTerm] = useState("");
+  const [payoutWorkerFilter, setPayoutWorkerFilter] = useState("");
+  const [payoutSortField, setPayoutSortField] = useState<PayoutSortField>("date");
+  const [payoutSortDirection, setPayoutSortDirection] = useState<SortDirection>("desc");
+  const [payoutPage, setPayoutPage] = useState(1);
+  const [payoutDateFilterPreset, setPayoutDateFilterPreset] = useState<DateFilterPreset>("all");
+  const [payoutDateFilterYear, setPayoutDateFilterYear] = useState(() => String(new Date().getFullYear()));
+  const [payoutDateFilterMonth, setPayoutDateFilterMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
+  const [payoutDateRangeFrom, setPayoutDateRangeFrom] = useState("");
+  const [payoutDateRangeTo, setPayoutDateRangeTo] = useState("");
 
   const loadData = useCallback(async () => {
     if (!user) {
@@ -58,7 +73,7 @@ export function DashboardPage() {
       const [nextCategories, nextWorks, nextSalaryPayouts] = await Promise.all([
         listCategories(),
         user.role === "admin" ? listAllWorkEntries() : listUserWorkEntries(user.uid),
-        user.role === "admin" ? Promise.resolve([]) : listUserSalaryPayouts(user.uid),
+        user.role === "admin" ? listAllSalaryPayouts() : listUserSalaryPayouts(user.uid),
       ]);
 
       setCategories(nextCategories);
@@ -94,6 +109,9 @@ export function DashboardPage() {
   const workerEmails = useMemo(() => {
     return [...new Set(works.map((item) => item.userEmail))].sort((a, b) => a.localeCompare(b));
   }, [works]);
+  const payoutWorkerEmails = useMemo(() => {
+    return [...new Set(salaryPayouts.map((item) => item.userEmail))].sort((a, b) => a.localeCompare(b));
+  }, [salaryPayouts]);
 
   const filteredWorks = useMemo(() => {
     return works.filter((item) => {
@@ -218,6 +236,118 @@ export function DashboardPage() {
     },
   ];
 
+  const filteredPayoutsAdmin = useMemo(() => {
+    return salaryPayouts.filter((item) => {
+      const search = payoutSearchTerm.toLowerCase();
+      const matchesSearch =
+        item.description.toLowerCase().includes(search) ||
+        item.payoutDate.includes(payoutSearchTerm) ||
+        item.userEmail.toLowerCase().includes(search);
+      const matchesWorker = payoutWorkerFilter ? item.userEmail === payoutWorkerFilter : true;
+      const matchesDate = matchesDateString(
+        item.payoutDate,
+        payoutDateFilterPreset,
+        payoutDateFilterYear,
+        payoutDateFilterMonth,
+        payoutDateRangeFrom,
+        payoutDateRangeTo,
+      );
+      return matchesSearch && matchesWorker && matchesDate;
+    });
+  }, [
+    salaryPayouts,
+    payoutSearchTerm,
+    payoutWorkerFilter,
+    payoutDateFilterPreset,
+    payoutDateFilterYear,
+    payoutDateFilterMonth,
+    payoutDateRangeFrom,
+    payoutDateRangeTo,
+  ]);
+
+  const payoutFilteredTotal = useMemo(() => {
+    return filteredPayoutsAdmin.reduce((acc, item) => acc + item.amount, 0);
+  }, [filteredPayoutsAdmin]);
+
+  const sortedPayoutsAdmin = useMemo(() => {
+    return [...filteredPayoutsAdmin].sort((a, b) => {
+      const directionMultiplier = payoutSortDirection === "asc" ? 1 : -1;
+
+      if (payoutSortField === "amount") {
+        return (a.amount - b.amount) * directionMultiplier;
+      }
+      if (payoutSortField === "date") {
+        return a.payoutDate.localeCompare(b.payoutDate) * directionMultiplier;
+      }
+      if (payoutSortField === "worker") {
+        return a.userEmail.localeCompare(b.userEmail) * directionMultiplier;
+      }
+      return a.description.localeCompare(b.description) * directionMultiplier;
+    });
+  }, [filteredPayoutsAdmin, payoutSortDirection, payoutSortField]);
+
+  const payoutPageCount = Math.max(1, Math.ceil(sortedPayoutsAdmin.length / PAGE_SIZE));
+  const paginatedPayoutsAdmin = useMemo(() => {
+    const from = (payoutPage - 1) * PAGE_SIZE;
+    return sortedPayoutsAdmin.slice(from, from + PAGE_SIZE);
+  }, [sortedPayoutsAdmin, payoutPage]);
+
+  const togglePayoutSort = (field: PayoutSortField) => {
+    setPayoutPage(1);
+    if (payoutSortField === field) {
+      setPayoutSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+      return;
+    }
+    setPayoutSortField(field);
+    setPayoutSortDirection(field === "amount" || field === "date" ? "desc" : "asc");
+  };
+
+  const getPayoutSortIcon = (field: PayoutSortField) => {
+    if (payoutSortField !== field) {
+      return "";
+    }
+    return payoutSortDirection === "asc" ? "↑" : "↓";
+  };
+
+  const payoutColumns: TableColumn<SalaryPayout>[] = [
+    {
+      key: "date",
+      title: (
+        <button type="button" className={styles.sortHeader} onClick={() => togglePayoutSort("date")}>
+          Дата{getPayoutSortIcon("date") ? ` ${getPayoutSortIcon("date")}` : ""}
+        </button>
+      ),
+      render: (row) => row.payoutDate,
+    },
+    {
+      key: "worker",
+      title: (
+        <button type="button" className={styles.sortHeader} onClick={() => togglePayoutSort("worker")}>
+          Працівник{getPayoutSortIcon("worker") ? ` ${getPayoutSortIcon("worker")}` : ""}
+        </button>
+      ),
+      render: (row) => row.userEmail,
+    },
+    {
+      key: "description",
+      title: (
+        <button type="button" className={styles.sortHeader} onClick={() => togglePayoutSort("description")}>
+          Опис{getPayoutSortIcon("description") ? ` ${getPayoutSortIcon("description")}` : ""}
+        </button>
+      ),
+      render: (row) => row.description,
+    },
+    {
+      key: "amount",
+      title: (
+        <button type="button" className={styles.sortHeader} onClick={() => togglePayoutSort("amount")}>
+          Сума{getPayoutSortIcon("amount") ? ` ${getPayoutSortIcon("amount")}` : ""}
+        </button>
+      ),
+      render: (row) => `-${row.amount.toFixed(2)}`,
+    },
+  ];
+
   const salarySummary = useMemo(() => {
     const earned = works.reduce((acc, work) => acc + work.amount, 0);
     const paid = salaryPayouts.reduce((acc, payout) => acc + payout.amount, 0);
@@ -255,7 +385,36 @@ export function DashboardPage() {
         </div>
       </header>
 
-      <section className={styles.panel}>
+      {user.role === "admin" ? (
+        <section className={styles.panel}>
+          <div className={styles.adminTabs}>
+            <button
+              type="button"
+              className={`${styles.adminTabButton} ${adminView === "works" ? styles.adminTabButtonActive : ""}`}
+              onClick={() => setAdminView("works")}
+            >
+              Роботи
+            </button>
+            <button
+              type="button"
+              className={`${styles.adminTabButton} ${adminView === "payouts" ? styles.adminTabButtonActive : ""}`}
+              onClick={() => setAdminView("payouts")}
+            >
+              Виплачені зарплати
+            </button>
+            <button
+              type="button"
+              className={`${styles.adminTabButton} ${adminView === "admin" ? styles.adminTabButtonActive : ""}`}
+              onClick={() => setAdminView("admin")}
+            >
+              Адмін панель
+            </button>
+          </div>
+        </section>
+      ) : null}
+
+      {user.role !== "admin" || adminView === "works" ? (
+        <section className={styles.panel}>
         <h2>{t("dashboard.works")}</h2>
         <div className={styles.filters}>
           <input
@@ -404,7 +563,143 @@ export function DashboardPage() {
             {t("common.next")}
           </Button>
         </div>
-      </section>
+        </section>
+      ) : null}
+
+      {user.role === "admin" && adminView === "payouts" ? (
+        <section className={styles.panel}>
+          <h2>Виплачені зарплати</h2>
+          <div className={styles.filters}>
+            <input
+              className={styles.search}
+              value={payoutSearchTerm}
+              onChange={(event) => {
+                setPayoutSearchTerm(event.target.value);
+                setPayoutPage(1);
+              }}
+              placeholder={t("common.search")}
+            />
+            <select
+              className={styles.select}
+              value={payoutWorkerFilter}
+              onChange={(event) => {
+                setPayoutWorkerFilter(event.target.value);
+                setPayoutPage(1);
+              }}
+            >
+              <option value="">{t("dashboard.allWorkers")}</option>
+              {payoutWorkerEmails.map((email) => (
+                <option key={email} value={email}>
+                  {email}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className={styles.dateFilters}>
+            <label className={styles.dateFilterLabel}>
+              <span className={styles.dateFilterSpan}>Фільтр дат</span>
+              <select
+                className={styles.select}
+                value={payoutDateFilterPreset}
+                onChange={(event) => {
+                  setPayoutDateFilterPreset(event.target.value as DateFilterPreset);
+                  setPayoutPage(1);
+                }}
+              >
+                <option value="all">{t("dashboard.dateFilterAll")}</option>
+                <option value="year">{t("dashboard.dateFilterByYear")}</option>
+                <option value="month">{t("dashboard.dateFilterByMonth")}</option>
+                <option value="range">{t("dashboard.dateFilterByRange")}</option>
+              </select>
+            </label>
+            {payoutDateFilterPreset === "year" ? (
+              <label className={styles.dateFilterLabel}>
+                <span className={styles.dateFilterSpan}>{t("dashboard.dateFilterYear")}</span>
+                <input
+                  className={styles.dateInput}
+                  type="number"
+                  min={2000}
+                  max={2100}
+                  value={payoutDateFilterYear}
+                  onChange={(event) => {
+                    setPayoutDateFilterYear(event.target.value);
+                    setPayoutPage(1);
+                  }}
+                />
+              </label>
+            ) : null}
+            {payoutDateFilterPreset === "month" ? (
+              <label className={styles.dateFilterLabel}>
+                <span className={styles.dateFilterSpan}>{t("dashboard.dateFilterMonth")}</span>
+                <input
+                  className={styles.dateInput}
+                  type="month"
+                  value={payoutDateFilterMonth}
+                  onChange={(event) => {
+                    setPayoutDateFilterMonth(event.target.value);
+                    setPayoutPage(1);
+                  }}
+                />
+              </label>
+            ) : null}
+            {payoutDateFilterPreset === "range" ? (
+              <>
+                <label className={styles.dateFilterLabel}>
+                  <span className={styles.dateFilterSpan}>{t("dashboard.dateFilterFrom")}</span>
+                  <input
+                    className={styles.dateInput}
+                    type="date"
+                    value={payoutDateRangeFrom}
+                    onChange={(event) => {
+                      setPayoutDateRangeFrom(event.target.value);
+                      setPayoutPage(1);
+                    }}
+                  />
+                </label>
+                <label className={styles.dateFilterLabel}>
+                  <span className={styles.dateFilterSpan}>{t("dashboard.dateFilterTo")}</span>
+                  <input
+                    className={styles.dateInput}
+                    type="date"
+                    value={payoutDateRangeTo}
+                    onChange={(event) => {
+                      setPayoutDateRangeTo(event.target.value);
+                      setPayoutPage(1);
+                    }}
+                  />
+                </label>
+              </>
+            ) : null}
+          </div>
+
+          {filteredPayoutsAdmin.length > 0 ? (
+            <div className={styles.payoutsTotalBanner}>
+              <span className={styles.worksTotalLabel}>Разом виплачено (за фільтром)</span>
+              <strong className={styles.payoutsTotalValue}>{payoutFilteredTotal.toFixed(2)}</strong>
+            </div>
+          ) : null}
+          {!dataLoading && sortedPayoutsAdmin.length === 0 ? <p>Виплат не знайдено.</p> : null}
+          <Table columns={payoutColumns} rows={paginatedPayoutsAdmin} rowKey={(row) => row.id} />
+
+          <div className={styles.pagination}>
+            <Button variant="ghost" type="button" disabled={payoutPage === 1} onClick={() => setPayoutPage((prev) => Math.max(1, prev - 1))}>
+              {t("common.prev")}
+            </Button>
+            <span>
+              {t("common.page")} {payoutPage}/{payoutPageCount}
+            </span>
+            <Button
+              variant="ghost"
+              type="button"
+              disabled={payoutPage === payoutPageCount}
+              onClick={() => setPayoutPage((prev) => Math.min(payoutPageCount, prev + 1))}
+            >
+              {t("common.next")}
+            </Button>
+          </div>
+        </section>
+      ) : null}
 
       {user.role !== "admin" ? (
         <section className={styles.panel}>
@@ -441,7 +736,7 @@ export function DashboardPage() {
         </section>
       ) : null}
 
-      {user.role === "admin" ? <AdminTools adminUid={user.uid} works={works} onDataChanged={loadData} /> : null}
+      {user.role === "admin" && adminView === "admin" ? <AdminTools adminUid={user.uid} works={works} onDataChanged={loadData} /> : null}
 
       <Modal isOpen={isCreateModalOpen} title={t("dashboard.addWork")} onClose={() => setCreateModalOpen(false)}>
         <CreateWorkForm

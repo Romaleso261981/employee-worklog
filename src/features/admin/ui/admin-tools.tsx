@@ -38,6 +38,7 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
   });
   const [payoutDateFrom, setPayoutDateFrom] = useState("");
   const [payoutDateTo, setPayoutDateTo] = useState("");
+  const [activeTab, setActiveTab] = useState<"works" | "payouts">("works");
   type CategoryFormValues = z.output<typeof categorySchema>;
   type SalaryPayoutFormValues = z.output<typeof salaryPayoutSchema>;
 
@@ -300,190 +301,216 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
           </Button>
         </div>
 
-        <form className={styles.salaryForm} onSubmit={onSalarySubmit}>
-          <h3>Видача зарплати</h3>
-          <label className={styles.filterGroup}>
-            <span>Кому видано</span>
-            <select
-              className={styles.select}
-              value={payoutRecipientEmail}
-              onChange={(event) => setPayoutRecipientEmail(event.target.value)}
-            >
-              {workerEmails.length === 0 ? <option value="">Немає працівників</option> : null}
-              {workerEmails.map((email) => (
-                <option key={email} value={email}>
-                  {email}
-                </option>
-              ))}
-            </select>
-          </label>
-          <Input label="Дата видачі" type="date" {...registerSalary("payoutDate")} error={salaryErrors.payoutDate?.message} />
-          <label className={styles.filterGroup}>
-            <span>Опис</span>
-            <textarea className={styles.textarea} rows={2} {...registerSalary("description")} />
-            {salaryErrors.description ? <small className={styles.error}>{salaryErrors.description.message}</small> : null}
-          </label>
-          <Input
-            label="Сума"
-            type="number"
-            min={0}
-            step="0.01"
-            {...registerSalary("amount")}
-            error={salaryErrors.amount?.message}
-          />
-          {salaryError ? <p className={styles.error}>{salaryError}</p> : null}
-          <Button disabled={isSalarySubmitting || !payoutRecipientEmail} type="submit">
-            Зберегти виплату
-          </Button>
-        </form>
-
-        <div className={styles.rows}>
-          <h3>Роботи</h3>
-          {filteredWorks.length > 0 ? (
-            <div className={styles.worksTotalBanner} role="status">
-              <span className={styles.worksTotalLabel}>Разом зароблено (за фільтром)</span>
-              <strong className={styles.worksTotalValue}>{summary.earned.toFixed(2)}</strong>
-            </div>
-          ) : null}
-          {paginatedWorksForEdit.map((work) => (
-            <AmountRow key={work.id} work={work} onDataChanged={onDataChanged} />
-          ))}
+        <div className={styles.tabs}>
+          <button
+            type="button"
+            className={`${styles.tabButton} ${activeTab === "works" ? styles.tabButtonActive : ""}`}
+            onClick={() => setActiveTab("works")}
+          >
+            Роботи працівника
+          </button>
+          <button
+            type="button"
+            className={`${styles.tabButton} ${activeTab === "payouts" ? styles.tabButtonActive : ""}`}
+            onClick={() => setActiveTab("payouts")}
+          >
+            Видача та виплати
+          </button>
         </div>
-        {filteredWorks.length === 0 ? <p className={styles.meta}>Немає робіт для обраного працівника</p> : null}
-        {filteredWorks.length > WORK_ROWS_PER_PAGE ? (
-          <div className={styles.pagination}>
-            <Button
-              variant="ghost"
-              type="button"
-              disabled={worksPage === 1}
-              onClick={() => setWorksPage((prev) => Math.max(1, prev - 1))}
-            >
-              Назад
-            </Button>
-            <span className={styles.paginationInfo}>
-              Сторінка {worksPage}/{worksPageCount}
-            </span>
-            <Button
-              variant="ghost"
-              type="button"
-              disabled={worksPage === worksPageCount}
-              onClick={() => setWorksPage((prev) => Math.min(worksPageCount, prev + 1))}
-            >
-              Далі
-            </Button>
-          </div>
+
+        {activeTab === "works" ? (
+          <>
+            <div className={styles.rows}>
+              <h3>Роботи</h3>
+              {filteredWorks.length > 0 ? (
+                <div className={styles.worksTotalBanner} role="status">
+                  <span className={styles.worksTotalLabel}>Разом зароблено (за фільтром)</span>
+                  <strong className={styles.worksTotalValue}>{summary.earned.toFixed(2)}</strong>
+                </div>
+              ) : null}
+              {paginatedWorksForEdit.map((work) => (
+                <AmountRow key={work.id} work={work} onDataChanged={onDataChanged} />
+              ))}
+            </div>
+            {filteredWorks.length === 0 ? <p className={styles.meta}>Немає робіт для обраного працівника</p> : null}
+            {filteredWorks.length > WORK_ROWS_PER_PAGE ? (
+              <div className={styles.pagination}>
+                <Button
+                  variant="ghost"
+                  type="button"
+                  disabled={worksPage === 1}
+                  onClick={() => setWorksPage((prev) => Math.max(1, prev - 1))}
+                >
+                  Назад
+                </Button>
+                <span className={styles.paginationInfo}>
+                  Сторінка {worksPage}/{worksPageCount}
+                </span>
+                <Button
+                  variant="ghost"
+                  type="button"
+                  disabled={worksPage === worksPageCount}
+                  onClick={() => setWorksPage((prev) => Math.min(worksPageCount, prev + 1))}
+                >
+                  Далі
+                </Button>
+              </div>
+            ) : null}
+          </>
         ) : null}
-        <div className={styles.rows}>
-          <h3>Історія виплат</h3>
-          {!salaryLoading ? (
-            <div className={styles.payoutDateFilters}>
-              <label className={styles.payoutDateFilterLabel}>
-                <span>Фільтр дат</span>
+
+        {activeTab === "payouts" ? (
+          <>
+            <form className={styles.salaryForm} onSubmit={onSalarySubmit}>
+              <h3>Видача зарплати</h3>
+              <label className={styles.filterGroup}>
+                <span>Кому видано</span>
                 <select
                   className={styles.select}
-                  value={payoutDatePreset}
-                  onChange={(event) => setPayoutDatePreset(event.target.value as DateFilterPreset)}
+                  value={payoutRecipientEmail}
+                  onChange={(event) => setPayoutRecipientEmail(event.target.value)}
                 >
-                  <option value="all">Усі дати</option>
-                  <option value="year">За рік</option>
-                  <option value="month">За місяць</option>
-                  <option value="range">Період</option>
+                  {workerEmails.length === 0 ? <option value="">Немає працівників</option> : null}
+                  {workerEmails.map((email) => (
+                    <option key={email} value={email}>
+                      {email}
+                    </option>
+                  ))}
                 </select>
               </label>
-              {payoutDatePreset === "year" ? (
-                <label className={styles.payoutDateFilterLabel}>
-                  <span>Рік</span>
-                  <input
-                    className={styles.dateInput}
-                    type="number"
-                    min={2000}
-                    max={2100}
-                    value={payoutDateYear}
-                    onChange={(event) => setPayoutDateYear(event.target.value)}
-                  />
-                </label>
-              ) : null}
-              {payoutDatePreset === "month" ? (
-                <label className={styles.payoutDateFilterLabel}>
-                  <span>Місяць</span>
-                  <input
-                    className={styles.dateInput}
-                    type="month"
-                    value={payoutDateMonth}
-                    onChange={(event) => setPayoutDateMonth(event.target.value)}
-                  />
-                </label>
-              ) : null}
-              {payoutDatePreset === "range" ? (
-                <>
+              <Input label="Дата видачі" type="date" {...registerSalary("payoutDate")} error={salaryErrors.payoutDate?.message} />
+              <label className={styles.filterGroup}>
+                <span>Опис</span>
+                <textarea className={styles.textarea} rows={2} {...registerSalary("description")} />
+                {salaryErrors.description ? <small className={styles.error}>{salaryErrors.description.message}</small> : null}
+              </label>
+              <Input
+                label="Сума"
+                type="number"
+                min={0}
+                step="0.01"
+                {...registerSalary("amount")}
+                error={salaryErrors.amount?.message}
+              />
+              {salaryError ? <p className={styles.error}>{salaryError}</p> : null}
+              <Button disabled={isSalarySubmitting || !payoutRecipientEmail} type="submit">
+                Зберегти виплату
+              </Button>
+            </form>
+
+            <div className={styles.rows}>
+              <h3>Історія виплат</h3>
+              {!salaryLoading ? (
+                <div className={styles.payoutDateFilters}>
                   <label className={styles.payoutDateFilterLabel}>
-                    <span>Від</span>
-                    <input
-                      className={styles.dateInput}
-                      type="date"
-                      value={payoutDateFrom}
-                      onChange={(event) => setPayoutDateFrom(event.target.value)}
-                    />
+                    <span>Фільтр дат</span>
+                    <select
+                      className={styles.select}
+                      value={payoutDatePreset}
+                      onChange={(event) => setPayoutDatePreset(event.target.value as DateFilterPreset)}
+                    >
+                      <option value="all">Усі дати</option>
+                      <option value="year">За рік</option>
+                      <option value="month">За місяць</option>
+                      <option value="range">Період</option>
+                    </select>
                   </label>
-                  <label className={styles.payoutDateFilterLabel}>
-                    <span>До</span>
-                    <input
-                      className={styles.dateInput}
-                      type="date"
-                      value={payoutDateTo}
-                      onChange={(event) => setPayoutDateTo(event.target.value)}
-                    />
-                  </label>
-                </>
-              ) : null}
-            </div>
-          ) : null}
-          {salaryLoading ? <p className={styles.meta}>Завантаження виплат...</p> : null}
-          {!salaryLoading && dateFilteredPayouts.length > 0 ? (
-            <div className={styles.payoutsTotalBanner} role="status">
-              <span className={styles.payoutsTotalLabel}>Разом виплачено (за фільтром)</span>
-              <strong className={styles.payoutsTotalValue}>{payoutHistoryPaidTotal.toFixed(2)}</strong>
-            </div>
-          ) : null}
-          {!salaryLoading &&
-            paginatedPayouts.map((payout) => (
-              <div className={styles.row} key={payout.id}>
-                <div className={styles.info}>
-                  <p className={styles.description}>{payout.userEmail}</p>
-                  <p className={styles.meta}>{payout.payoutDate}</p>
-                  <p className={styles.workDescription}>{payout.description}</p>
+                  {payoutDatePreset === "year" ? (
+                    <label className={styles.payoutDateFilterLabel}>
+                      <span>Рік</span>
+                      <input
+                        className={styles.dateInput}
+                        type="number"
+                        min={2000}
+                        max={2100}
+                        value={payoutDateYear}
+                        onChange={(event) => setPayoutDateYear(event.target.value)}
+                      />
+                    </label>
+                  ) : null}
+                  {payoutDatePreset === "month" ? (
+                    <label className={styles.payoutDateFilterLabel}>
+                      <span>Місяць</span>
+                      <input
+                        className={styles.dateInput}
+                        type="month"
+                        value={payoutDateMonth}
+                        onChange={(event) => setPayoutDateMonth(event.target.value)}
+                      />
+                    </label>
+                  ) : null}
+                  {payoutDatePreset === "range" ? (
+                    <>
+                      <label className={styles.payoutDateFilterLabel}>
+                        <span>Від</span>
+                        <input
+                          className={styles.dateInput}
+                          type="date"
+                          value={payoutDateFrom}
+                          onChange={(event) => setPayoutDateFrom(event.target.value)}
+                        />
+                      </label>
+                      <label className={styles.payoutDateFilterLabel}>
+                        <span>До</span>
+                        <input
+                          className={styles.dateInput}
+                          type="date"
+                          value={payoutDateTo}
+                          onChange={(event) => setPayoutDateTo(event.target.value)}
+                        />
+                      </label>
+                    </>
+                  ) : null}
                 </div>
-                <p className={`${styles.summaryValue} ${styles.negative}`}>-{payout.amount.toFixed(2)}</p>
-              </div>
-            ))}
-          {!salaryLoading && filteredPayouts.length === 0 ? <p className={styles.meta}>Немає виплат</p> : null}
-          {!salaryLoading && filteredPayouts.length > 0 && dateFilteredPayouts.length === 0 ? (
-            <p className={styles.meta}>Немає виплат за обраний період</p>
-          ) : null}
-          {!salaryLoading && dateFilteredPayouts.length > WORK_ROWS_PER_PAGE ? (
-            <div className={styles.pagination}>
-              <Button
-                variant="ghost"
-                type="button"
-                disabled={payoutsPage === 1}
-                onClick={() => setPayoutsPage((prev) => Math.max(1, prev - 1))}
-              >
-                Назад
-              </Button>
-              <span className={styles.paginationInfo}>
-                Сторінка {payoutsPage}/{payoutsPageCount}
-              </span>
-              <Button
-                variant="ghost"
-                type="button"
-                disabled={payoutsPage === payoutsPageCount}
-                onClick={() => setPayoutsPage((prev) => Math.min(payoutsPageCount, prev + 1))}
-              >
-                Далі
-              </Button>
+              ) : null}
+              {salaryLoading ? <p className={styles.meta}>Завантаження виплат...</p> : null}
+              {!salaryLoading && dateFilteredPayouts.length > 0 ? (
+                <div className={styles.payoutsTotalBanner} role="status">
+                  <span className={styles.payoutsTotalLabel}>Разом виплачено (за фільтром)</span>
+                  <strong className={styles.payoutsTotalValue}>{payoutHistoryPaidTotal.toFixed(2)}</strong>
+                </div>
+              ) : null}
+              {!salaryLoading &&
+                paginatedPayouts.map((payout) => (
+                  <div className={styles.row} key={payout.id}>
+                    <div className={styles.info}>
+                      <p className={styles.description}>{payout.userEmail}</p>
+                      <p className={styles.meta}>{payout.payoutDate}</p>
+                      <p className={styles.workDescription}>{payout.description}</p>
+                    </div>
+                    <p className={`${styles.summaryValue} ${styles.negative}`}>-{payout.amount.toFixed(2)}</p>
+                  </div>
+                ))}
+              {!salaryLoading && filteredPayouts.length === 0 ? <p className={styles.meta}>Немає виплат</p> : null}
+              {!salaryLoading && filteredPayouts.length > 0 && dateFilteredPayouts.length === 0 ? (
+                <p className={styles.meta}>Немає виплат за обраний період</p>
+              ) : null}
+              {!salaryLoading && dateFilteredPayouts.length > WORK_ROWS_PER_PAGE ? (
+                <div className={styles.pagination}>
+                  <Button
+                    variant="ghost"
+                    type="button"
+                    disabled={payoutsPage === 1}
+                    onClick={() => setPayoutsPage((prev) => Math.max(1, prev - 1))}
+                  >
+                    Назад
+                  </Button>
+                  <span className={styles.paginationInfo}>
+                    Сторінка {payoutsPage}/{payoutsPageCount}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    type="button"
+                    disabled={payoutsPage === payoutsPageCount}
+                    onClick={() => setPayoutsPage((prev) => Math.min(payoutsPageCount, prev + 1))}
+                  >
+                    Далі
+                  </Button>
+                </div>
+              ) : null}
             </div>
-          ) : null}
-        </div>
+          </>
+        ) : null}
       </div>
     </section>
   );

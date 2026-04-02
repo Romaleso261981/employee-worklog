@@ -71,6 +71,28 @@
   justify-content: flex-end;
 }
 
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tabButton {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.tabButtonActive {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: #eef2ff;
+}
+
 .textarea {
   border: 1px solid var(--border);
   border-radius: 10px;
