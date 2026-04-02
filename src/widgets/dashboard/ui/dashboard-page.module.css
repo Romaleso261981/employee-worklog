@@ -56,6 +56,32 @@
   cursor: pointer;
 }
 
+/* Підсумок суми: одразу під фільтрами, над таблицею */
+.worksTotalBanner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #e8eeff 0%, #dce6ff 100%);
+  border: 2px solid var(--primary);
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(49, 88, 245, 0.12);
+}
+
+.worksTotalLabel {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.worksTotalValue {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+}
+
 .pagination {
   display: flex;
   align-items: center;

@@ -12,6 +12,8 @@ import { Input } from "@/shared/ui/input/input";
 import { amountSchema, categorySchema, salaryPayoutSchema } from "@/shared/lib/validation/schemas";
 import styles from "./admin-tools.module.css";
 
+const WORK_ROWS_PER_PAGE = 3;
+
 interface Props {
   adminUid: string;
   works: WorkEntry[];
@@ -25,6 +27,8 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
   const [salaryPayouts, setSalaryPayouts] = useState<SalaryPayout[]>([]);
   const [selectedEmail, setSelectedEmail] = useState("");
   const [payoutRecipientEmail, setPayoutRecipientEmail] = useState("");
+  const [worksPage, setWorksPage] = useState(1);
+  const [payoutsPage, setPayoutsPage] = useState(1);
   type CategoryFormValues = z.output<typeof categorySchema>;
   type SalaryPayoutFormValues = z.output<typeof salaryPayoutSchema>;
 
@@ -105,9 +109,36 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
     return selectedEmail ? works.filter((work) => work.userEmail === selectedEmail) : works;
   }, [selectedEmail, works]);
 
+  const worksPageCount = Math.max(1, Math.ceil(filteredWorks.length / WORK_ROWS_PER_PAGE));
+
+  const paginatedWorksForEdit = useMemo(() => {
+    const from = (worksPage - 1) * WORK_ROWS_PER_PAGE;
+    return filteredWorks.slice(from, from + WORK_ROWS_PER_PAGE);
+  }, [filteredWorks, worksPage]);
+
   const filteredPayouts = useMemo(() => {
     return selectedEmail ? salaryPayouts.filter((payout) => payout.userEmail === selectedEmail) : salaryPayouts;
   }, [salaryPayouts, selectedEmail]);
+
+  const payoutsPageCount = Math.max(1, Math.ceil(filteredPayouts.length / WORK_ROWS_PER_PAGE));
+
+  const paginatedPayouts = useMemo(() => {
+    const from = (payoutsPage - 1) * WORK_ROWS_PER_PAGE;
+    return filteredPayouts.slice(from, from + WORK_ROWS_PER_PAGE);
+  }, [filteredPayouts, payoutsPage]);
+
+  useEffect(() => {
+    setWorksPage(1);
+    setPayoutsPage(1);
+  }, [selectedEmail]);
+
+  useEffect(() => {
+    setWorksPage((prev) => Math.min(prev, worksPageCount));
+  }, [filteredWorks.length, worksPageCount]);
+
+  useEffect(() => {
+    setPayoutsPage((prev) => Math.min(prev, payoutsPageCount));
+  }, [filteredPayouts.length, payoutsPageCount]);
 
   const summary = useMemo(() => {
     const earned = filteredWorks.reduce((acc, work) => acc + work.amount, 0);
@@ -284,16 +315,45 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
         </form>
 
         <div className={styles.rows}>
-          {filteredWorks.map((work) => (
+          {paginatedWorksForEdit.map((work) => (
             <AmountRow key={work.id} work={work} onDataChanged={onDataChanged} />
           ))}
         </div>
         {filteredWorks.length === 0 ? <p className={styles.meta}>Немає робіт для обраного працівника</p> : null}
+        {filteredWorks.length > WORK_ROWS_PER_PAGE ? (
+          <div className={styles.pagination}>
+            <Button
+              variant="ghost"
+              type="button"
+              disabled={worksPage === 1}
+              onClick={() => setWorksPage((prev) => Math.max(1, prev - 1))}
+            >
+              Назад
+            </Button>
+            <span className={styles.paginationInfo}>
+              Сторінка {worksPage}/{worksPageCount}
+            </span>
+            <Button
+              variant="ghost"
+              type="button"
+              disabled={worksPage === worksPageCount}
+              onClick={() => setWorksPage((prev) => Math.min(worksPageCount, prev + 1))}
+            >
+              Далі
+            </Button>
+          </div>
+        ) : null}
         <div className={styles.rows}>
           <h3>Історія виплат</h3>
           {salaryLoading ? <p className={styles.meta}>Завантаження виплат...</p> : null}
+          {!salaryLoading && filteredPayouts.length > 0 ? (
+            <div className={styles.payoutsTotalBanner} role="status">
+              <span className={styles.payoutsTotalLabel}>Разом виплачено (за фільтром)</span>
+              <strong className={styles.payoutsTotalValue}>{summary.paid.toFixed(2)}</strong>
+            </div>
+          ) : null}
           {!salaryLoading &&
-            filteredPayouts.map((payout) => (
+            paginatedPayouts.map((payout) => (
               <div className={styles.row} key={payout.id}>
                 <div className={styles.info}>
                   <p className={styles.description}>{payout.userEmail}</p>
@@ -304,6 +364,29 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
               </div>
             ))}
           {!salaryLoading && filteredPayouts.length === 0 ? <p className={styles.meta}>Немає виплат</p> : null}
+          {!salaryLoading && filteredPayouts.length > WORK_ROWS_PER_PAGE ? (
+            <div className={styles.pagination}>
+              <Button
+                variant="ghost"
+                type="button"
+                disabled={payoutsPage === 1}
+                onClick={() => setPayoutsPage((prev) => Math.max(1, prev - 1))}
+              >
+                Назад
+              </Button>
+              <span className={styles.paginationInfo}>
+                Сторінка {payoutsPage}/{payoutsPageCount}
+              </span>
+              <Button
+                variant="ghost"
+                type="button"
+                disabled={payoutsPage === payoutsPageCount}
+                onClick={() => setPayoutsPage((prev) => Math.min(payoutsPageCount, prev + 1))}
+              >
+                Далі
+              </Button>
+            </div>
+          ) : null}
         </div>
       </div>
     </section>

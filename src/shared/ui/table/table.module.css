@@ -3,3 +3,9 @@
 .table th,
 .table td { text-align: left; border-bottom: 1px solid var(--border); padding: 10px; }
 .table th { color: var(--muted); font-size: 13px; }
+
+.tfoot td {
+  font-weight: 600;
+  background: #f4f7fc;
+  border-top: 2px solid var(--border);
+}

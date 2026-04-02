@@ -100,6 +100,10 @@ export function DashboardPage() {
     });
   }, [works, searchTerm, categoryFilter, workerFilter]);
 
+  const filteredAmountTotal = useMemo(() => {
+    return filteredWorks.reduce((acc, item) => acc + item.amount, 0);
+  }, [filteredWorks]);
+
   const sortedWorks = useMemo(() => {
     return [...filteredWorks].sort((a, b) => {
       const directionMultiplier = sortDirection === "asc" ? 1 : -1;
@@ -269,6 +273,13 @@ export function DashboardPage() {
             </select>
           ) : null}
         </div>
+
+        {filteredWorks.length > 0 ? (
+          <div className={styles.worksTotalBanner} role="status" aria-live="polite">
+            <span className={styles.worksTotalLabel}>{t("dashboard.filteredTotalLabel")}</span>
+            <strong className={styles.worksTotalValue}>{filteredAmountTotal.toFixed(2)}</strong>
+          </div>
+        ) : null}
 
         {!dataLoading && sortedWorks.length === 0 ? <p>{t("dashboard.noWorks")}</p> : null}
         <Table columns={columns} rows={paginatedWorks} rowKey={(row) => row.id} />

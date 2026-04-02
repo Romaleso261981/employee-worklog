@@ -48,6 +48,7 @@ export const translations = {
       sortAmount: "Сортувати: сума",
       sortDirectionAsc: "Напрямок: зростання",
       sortDirectionDesc: "Напрямок: спадання",
+      filteredTotalLabel: "Разом (за фільтром)",
     },
     workForm: {
       title: "Додати роботу",
@@ -108,6 +109,7 @@ export const translations = {
       sortAmount: "Sort: amount",
       sortDirectionAsc: "Direction: ascending",
       sortDirectionDesc: "Direction: descending",
+      filteredTotalLabel: "Total (filtered)",
     },
     workForm: {
       title: "Add work",
@@ -165,6 +167,7 @@ export type TranslationPath =
   | "dashboard.sortAmount"
   | "dashboard.sortDirectionAsc"
   | "dashboard.sortDirectionDesc"
+  | "dashboard.filteredTotalLabel"
   | "workForm.title"
   | "workForm.date"
   | "workForm.description"

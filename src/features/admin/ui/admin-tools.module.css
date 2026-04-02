@@ -130,3 +130,40 @@
   color: var(--danger);
   font-size: 12px;
 }
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.paginationInfo {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.payoutsTotalBanner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%);
+  border: 2px solid #f0b4b4;
+  border-radius: 12px;
+}
+
+.payoutsTotalLabel {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.payoutsTotalValue {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--danger);
+  font-variant-numeric: tabular-nums;
+}

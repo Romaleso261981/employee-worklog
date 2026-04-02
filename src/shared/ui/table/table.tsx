@@ -10,9 +10,11 @@ interface TableProps<T> {
   columns: TableColumn<T>[];
   rows: T[];
   rowKey: (row: T) => string;
+  /** Optional footer row(s), e.g. totals — use <tr><td colSpan={…}>…</td></tr> */
+  footer?: React.ReactNode;
 }
 
-export function Table<T>({ columns, rows, rowKey }: TableProps<T>) {
+export function Table<T>({ columns, rows, rowKey, footer }: TableProps<T>) {
   return (
     <div className={styles.wrapper}>
       <table className={styles.table}>
@@ -32,6 +34,7 @@ export function Table<T>({ columns, rows, rowKey }: TableProps<T>) {
             </tr>
           ))}
         </tbody>
+        {footer ? <tfoot className={styles.tfoot}>{footer}</tfoot> : null}
       </table>
     </div>
   );
