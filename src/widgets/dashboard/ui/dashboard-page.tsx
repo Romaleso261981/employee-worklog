@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { listCategories } from "@/entities/category/model/category-service";
 import { Category } from "@/entities/category/model/types";
-import { createSalaryPayout, listAllSalaryPayouts, listAllWorkEntries, listUserSalaryPayouts, listUserWorkEntries } from "@/entities/work/model/work-service";
+import { listAllSalaryPayouts, listAllWorkEntries, listUserSalaryPayouts, listUserWorkEntries } from "@/entities/work/model/work-service";
 import { SalaryPayout, WorkEntry } from "@/entities/work/model/types";
 import { CreateWorkForm } from "@/features/work-entry/ui/create-work-form";
 import { AdminTools } from "@/features/admin/ui/admin-tools";
@@ -63,11 +63,6 @@ export function DashboardPage() {
   });
   const [payoutDateRangeFrom, setPayoutDateRangeFrom] = useState("");
   const [payoutDateRangeTo, setPayoutDateRangeTo] = useState("");
-  const [wasteDate, setWasteDate] = useState("");
-  const [wasteDescription, setWasteDescription] = useState("");
-  const [wasteAmount, setWasteAmount] = useState("0");
-  const [wasteSubmitting, setWasteSubmitting] = useState(false);
-  const [wasteError, setWasteError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     if (!user) {
@@ -360,36 +355,6 @@ export function DashboardPage() {
     payoutColumns[3],
   ];
 
-  const onWasteSubmit = async () => {
-    if (!user) {
-      return;
-    }
-    setWasteError(null);
-    const amount = Number(wasteAmount);
-    if (!wasteDate || !wasteDescription.trim() || !Number.isFinite(amount) || amount <= 0) {
-      setWasteError("Заповніть дату, опис і суму більше 0.");
-      return;
-    }
-    try {
-      setWasteSubmitting(true);
-      await createSalaryPayout({
-        userId: user.uid,
-        userEmail: user.email,
-        payoutDate: wasteDate,
-        description: wasteDescription.trim(),
-        amount,
-      });
-      setWasteDate("");
-      setWasteDescription("");
-      setWasteAmount("0");
-      await loadData();
-    } catch {
-      setWasteError("Не вдалося додати витрату.");
-    } finally {
-      setWasteSubmitting(false);
-    }
-  };
-
   const salarySummary = useMemo(() => {
     const earned = works.reduce((acc, work) => acc + work.amount, 0);
     const paid = salaryPayouts.reduce((acc, payout) => acc + payout.amount, 0);
@@ -480,7 +445,12 @@ export function DashboardPage() {
 
       {(user.role === "admin" && adminView === "works") || (user.role !== "admin" && employeeView === "works") ? (
         <section className={styles.panel}>
-        <h2>{t("dashboard.works")}</h2>
+        <div className={styles.panelHeader}>
+          <h2>{t("dashboard.works")}</h2>
+          <Button type="button" onClick={() => setCreateModalOpen(true)}>
+            {t("dashboard.addWork")}
+          </Button>
+        </div>
         <div className={styles.filters}>
           <input
             className={styles.search}
@@ -634,33 +604,6 @@ export function DashboardPage() {
       {(user.role === "admin" && adminView === "payouts") || (user.role !== "admin" && employeeView === "waste") ? (
         <section className={styles.panel}>
           <h2>{user.role === "admin" ? "Виплачені зарплати" : "Витрати"}</h2>
-          {user.role !== "admin" ? (
-            <div className={styles.summaryCard}>
-              <label className={styles.dateFilterLabel}>
-                <span className={styles.dateFilterSpan}>Дата</span>
-                <input className={styles.dateInput} type="date" value={wasteDate} onChange={(event) => setWasteDate(event.target.value)} />
-              </label>
-              <label className={styles.dateFilterLabel}>
-                <span className={styles.dateFilterSpan}>Опис</span>
-                <input className={styles.dateInput} value={wasteDescription} onChange={(event) => setWasteDescription(event.target.value)} />
-              </label>
-              <label className={styles.dateFilterLabel}>
-                <span className={styles.dateFilterSpan}>Сума</span>
-                <input
-                  className={styles.dateInput}
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={wasteAmount}
-                  onChange={(event) => setWasteAmount(event.target.value)}
-                />
-              </label>
-              {wasteError ? <p className={styles.negative}>{wasteError}</p> : null}
-              <Button type="button" onClick={onWasteSubmit} disabled={wasteSubmitting}>
-                Додати витрату
-              </Button>
-            </div>
-          ) : null}
           <div className={styles.filters}>
             <input
               className={styles.search}

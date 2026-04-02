@@ -55,6 +55,14 @@
   box-shadow: 0 6px 20px rgba(16, 31, 61, 0.08);
 }
 
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .filters {
   display: grid;
   grid-template-columns: 1fr;
