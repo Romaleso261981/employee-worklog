@@ -9,6 +9,7 @@ import { createSalaryPayout, listAllSalaryPayouts, updateWorkAmount } from "@/en
 import { SalaryPayout, WorkEntry } from "@/entities/work/model/types";
 import { Button } from "@/shared/ui/button/button";
 import { Input } from "@/shared/ui/input/input";
+import { type DateFilterPreset, matchesDateString } from "@/shared/lib/date-filter";
 import { amountSchema, categorySchema, salaryPayoutSchema } from "@/shared/lib/validation/schemas";
 import styles from "./admin-tools.module.css";
 
@@ -29,6 +30,14 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
   const [payoutRecipientEmail, setPayoutRecipientEmail] = useState("");
   const [worksPage, setWorksPage] = useState(1);
   const [payoutsPage, setPayoutsPage] = useState(1);
+  const [payoutDatePreset, setPayoutDatePreset] = useState<DateFilterPreset>("all");
+  const [payoutDateYear, setPayoutDateYear] = useState(() => String(new Date().getFullYear()));
+  const [payoutDateMonth, setPayoutDateMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
+  const [payoutDateFrom, setPayoutDateFrom] = useState("");
+  const [payoutDateTo, setPayoutDateTo] = useState("");
   type CategoryFormValues = z.output<typeof categorySchema>;
   type SalaryPayoutFormValues = z.output<typeof salaryPayoutSchema>;
 
@@ -120,12 +129,22 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
     return selectedEmail ? salaryPayouts.filter((payout) => payout.userEmail === selectedEmail) : salaryPayouts;
   }, [salaryPayouts, selectedEmail]);
 
-  const payoutsPageCount = Math.max(1, Math.ceil(filteredPayouts.length / WORK_ROWS_PER_PAGE));
+  const dateFilteredPayouts = useMemo(() => {
+    return filteredPayouts.filter((payout) =>
+      matchesDateString(payout.payoutDate, payoutDatePreset, payoutDateYear, payoutDateMonth, payoutDateFrom, payoutDateTo),
+    );
+  }, [filteredPayouts, payoutDatePreset, payoutDateYear, payoutDateMonth, payoutDateFrom, payoutDateTo]);
+
+  const payoutsPageCount = Math.max(1, Math.ceil(dateFilteredPayouts.length / WORK_ROWS_PER_PAGE));
 
   const paginatedPayouts = useMemo(() => {
     const from = (payoutsPage - 1) * WORK_ROWS_PER_PAGE;
-    return filteredPayouts.slice(from, from + WORK_ROWS_PER_PAGE);
-  }, [filteredPayouts, payoutsPage]);
+    return dateFilteredPayouts.slice(from, from + WORK_ROWS_PER_PAGE);
+  }, [dateFilteredPayouts, payoutsPage]);
+
+  const payoutHistoryPaidTotal = useMemo(() => {
+    return dateFilteredPayouts.reduce((acc, p) => acc + p.amount, 0);
+  }, [dateFilteredPayouts]);
 
   useEffect(() => {
     setWorksPage(1);
@@ -138,7 +157,11 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
 
   useEffect(() => {
     setPayoutsPage((prev) => Math.min(prev, payoutsPageCount));
-  }, [filteredPayouts.length, payoutsPageCount]);
+  }, [dateFilteredPayouts.length, payoutsPageCount]);
+
+  useEffect(() => {
+    setPayoutsPage(1);
+  }, [payoutDatePreset, payoutDateYear, payoutDateMonth, payoutDateFrom, payoutDateTo]);
 
   const summary = useMemo(() => {
     const earned = filteredWorks.reduce((acc, work) => acc + work.amount, 0);
@@ -352,11 +375,74 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
         ) : null}
         <div className={styles.rows}>
           <h3>Історія виплат</h3>
+          {!salaryLoading ? (
+            <div className={styles.payoutDateFilters}>
+              <label className={styles.payoutDateFilterLabel}>
+                <span>Фільтр дат</span>
+                <select
+                  className={styles.select}
+                  value={payoutDatePreset}
+                  onChange={(event) => setPayoutDatePreset(event.target.value as DateFilterPreset)}
+                >
+                  <option value="all">Усі дати</option>
+                  <option value="year">За рік</option>
+                  <option value="month">За місяць</option>
+                  <option value="range">Період</option>
+                </select>
+              </label>
+              {payoutDatePreset === "year" ? (
+                <label className={styles.payoutDateFilterLabel}>
+                  <span>Рік</span>
+                  <input
+                    className={styles.dateInput}
+                    type="number"
+                    min={2000}
+                    max={2100}
+                    value={payoutDateYear}
+                    onChange={(event) => setPayoutDateYear(event.target.value)}
+                  />
+                </label>
+              ) : null}
+              {payoutDatePreset === "month" ? (
+                <label className={styles.payoutDateFilterLabel}>
+                  <span>Місяць</span>
+                  <input
+                    className={styles.dateInput}
+                    type="month"
+                    value={payoutDateMonth}
+                    onChange={(event) => setPayoutDateMonth(event.target.value)}
+                  />
+                </label>
+              ) : null}
+              {payoutDatePreset === "range" ? (
+                <>
+                  <label className={styles.payoutDateFilterLabel}>
+                    <span>Від</span>
+                    <input
+                      className={styles.dateInput}
+                      type="date"
+                      value={payoutDateFrom}
+                      onChange={(event) => setPayoutDateFrom(event.target.value)}
+                    />
+                  </label>
+                  <label className={styles.payoutDateFilterLabel}>
+                    <span>До</span>
+                    <input
+                      className={styles.dateInput}
+                      type="date"
+                      value={payoutDateTo}
+                      onChange={(event) => setPayoutDateTo(event.target.value)}
+                    />
+                  </label>
+                </>
+              ) : null}
+            </div>
+          ) : null}
           {salaryLoading ? <p className={styles.meta}>Завантаження виплат...</p> : null}
-          {!salaryLoading && filteredPayouts.length > 0 ? (
+          {!salaryLoading && dateFilteredPayouts.length > 0 ? (
             <div className={styles.payoutsTotalBanner} role="status">
               <span className={styles.payoutsTotalLabel}>Разом виплачено (за фільтром)</span>
-              <strong className={styles.payoutsTotalValue}>{summary.paid.toFixed(2)}</strong>
+              <strong className={styles.payoutsTotalValue}>{payoutHistoryPaidTotal.toFixed(2)}</strong>
             </div>
           ) : null}
           {!salaryLoading &&
@@ -371,7 +457,10 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
               </div>
             ))}
           {!salaryLoading && filteredPayouts.length === 0 ? <p className={styles.meta}>Немає виплат</p> : null}
-          {!salaryLoading && filteredPayouts.length > WORK_ROWS_PER_PAGE ? (
+          {!salaryLoading && filteredPayouts.length > 0 && dateFilteredPayouts.length === 0 ? (
+            <p className={styles.meta}>Немає виплат за обраний період</p>
+          ) : null}
+          {!salaryLoading && dateFilteredPayouts.length > WORK_ROWS_PER_PAGE ? (
             <div className={styles.pagination}>
               <Button
                 variant="ghost"

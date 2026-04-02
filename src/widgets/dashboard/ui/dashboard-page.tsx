@@ -16,48 +16,12 @@ import { LanguageSwitcher } from "@/shared/ui/language-switcher/language-switche
 import { Modal } from "@/shared/ui/modal/modal";
 import { Table, TableColumn } from "@/shared/ui/table/table";
 import { useToast } from "@/shared/ui/toast/toast-provider";
+import { type DateFilterPreset, matchesDateString } from "@/shared/lib/date-filter";
 import styles from "./dashboard-page.module.css";
 
 const PAGE_SIZE = 8;
 type SortField = "date" | "description" | "category" | "amount";
 type SortDirection = "desc" | "asc";
-type DateFilterPreset = "all" | "year" | "month" | "range";
-
-function matchesWorkDateFilter(
-  workDate: string,
-  preset: DateFilterPreset,
-  yearStr: string,
-  monthValue: string,
-  from: string,
-  to: string,
-): boolean {
-  if (preset === "all") {
-    return true;
-  }
-  if (preset === "year") {
-    const y = yearStr.trim();
-    if (!y) {
-      return true;
-    }
-    return workDate.startsWith(`${y}-`);
-  }
-  if (preset === "month") {
-    if (!monthValue) {
-      return true;
-    }
-    return workDate.startsWith(monthValue);
-  }
-  if (preset === "range") {
-    if (from && workDate < from) {
-      return false;
-    }
-    if (to && workDate > to) {
-      return false;
-    }
-    return true;
-  }
-  return true;
-}
 
 export function DashboardPage() {
   const router = useRouter();
@@ -140,7 +104,7 @@ export function DashboardPage() {
         item.categoryName.toLowerCase().includes(search);
       const matchesCategory = categoryFilter ? item.categoryId === categoryFilter : true;
       const matchesWorker = workerFilter ? item.userEmail === workerFilter : true;
-      const matchesDate = matchesWorkDateFilter(
+      const matchesDate = matchesDateString(
         item.workDate,
         dateFilterPreset,
         dateFilterYear,

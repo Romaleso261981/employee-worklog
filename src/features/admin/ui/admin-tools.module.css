@@ -144,6 +144,40 @@
   font-size: 14px;
 }
 
+.payoutDateFilters {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  align-items: end;
+  margin-bottom: 4px;
+}
+
+.payoutDateFilterLabel {
+  display: grid;
+  gap: 4px;
+}
+
+.payoutDateFilterLabel span {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.dateInput {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--surface);
+  color: var(--text);
+  width: 100%;
+  min-width: 0;
+}
+
+@media (min-width: 640px) {
+  .payoutDateFilters {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+}
+
 .worksTotalBanner {
   display: flex;
   flex-wrap: wrap;
