@@ -10,6 +10,7 @@ import { Input } from "@/shared/ui/input/input";
 import { Button } from "@/shared/ui/button/button";
 import { useAuth } from "@/shared/lib/auth/auth-context";
 import { useI18n } from "@/shared/lib/i18n/i18n-context";
+import { EyeIcon, EyeSlashIcon } from "@/shared/ui/icons/visibility-icons";
 import styles from "./auth-form.module.css";
 
 type AuthValues = {
@@ -26,6 +27,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const { login, register } = useAuth();
   const { t } = useI18n();
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register: bind,
@@ -71,7 +73,25 @@ export function AuthForm({ mode }: AuthFormProps) {
     <form className={styles.form} onSubmit={onSubmit}>
       <h1>{mode === "login" ? t("auth.login") : t("auth.register")}</h1>
       <Input label={t("auth.email")} type="email" {...bind("email")} error={errors.email?.message} />
-      <Input label={t("auth.password")} type="password" {...bind("password")} error={errors.password?.message} />
+      <Input
+        label={t("auth.password")}
+        {...bind("password")}
+        type={showPassword ? "text" : "password"}
+        autoComplete={mode === "login" ? "current-password" : "new-password"}
+        error={errors.password?.message}
+        endAdornment={
+          <button
+            type="button"
+            className={styles.passwordToggle}
+            onClick={() => setShowPassword((v) => !v)}
+            aria-pressed={showPassword}
+            aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
+            title={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
+          >
+            {showPassword ? <EyeSlashIcon className={styles.passwordToggleIcon} /> : <EyeIcon className={styles.passwordToggleIcon} />}
+          </button>
+        }
+      />
       {submitError ? <p className={styles.error}>{submitError}</p> : null}
       <Button disabled={isSubmitting} type="submit">
         {mode === "login" ? t("auth.submitLogin") : t("auth.submitRegister")}

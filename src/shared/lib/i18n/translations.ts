@@ -19,6 +19,8 @@ export const translations = {
       register: "Реєстрація",
       email: "Email",
       password: "Пароль",
+      showPassword: "Показати пароль",
+      hidePassword: "Приховати пароль",
       submitLogin: "Увійти",
       submitRegister: "Створити акаунт",
       noAccount: "Ще немає акаунта?",
@@ -89,6 +91,8 @@ export const translations = {
       register: "Register",
       email: "Email",
       password: "Password",
+      showPassword: "Show password",
+      hidePassword: "Hide password",
       submitLogin: "Sign in",
       submitRegister: "Create account",
       noAccount: "No account yet?",
@@ -158,6 +162,8 @@ export type TranslationPath =
   | "auth.register"
   | "auth.email"
   | "auth.password"
+  | "auth.showPassword"
+  | "auth.hidePassword"
   | "auth.submitLogin"
   | "auth.submitRegister"
   | "auth.noAccount"

@@ -1,4 +1,4 @@
-# Employee Worklog (Next.js + FSD + Firebase)
+# TaskTrackPro (Next.js + FSD + Firebase)
 
 Система обліку робіт для співробітників з ролями `employee` та `admin`.
 

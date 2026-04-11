@@ -12,6 +12,22 @@
   background: #fff;
 }
 
+.withAdornment {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.inputInRow {
+  border: none;
+  border-radius: 0;
+  flex: 1;
+  min-width: 0;
+}
+
 .error {
   color: var(--danger);
   font-size: 12px;

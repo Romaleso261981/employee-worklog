@@ -3,8 +3,8 @@ import "./globals.css";
 import { AppProviders } from "@/app/providers/app-providers";
 
 export const metadata: Metadata = {
-  title: "Employee Worklog",
-  description: "Worklog application for employee and admin workflows",
+  title: "TaskTrackPro",
+  description: "TaskTrackPro — work tracking for employees and admins",
 };
 
 export default function RootLayout({
