@@ -9,6 +9,7 @@ import { Input } from "@/shared/ui/input/input";
 import { Button } from "@/shared/ui/button/button";
 import { Category } from "@/entities/category/model/types";
 import { createWorkEntry } from "@/entities/work/model/work-service";
+import { todayIsoDateString } from "@/shared/lib/date-filter";
 import { useAuth } from "@/shared/lib/auth/auth-context";
 import { useI18n } from "@/shared/lib/i18n/i18n-context";
 import styles from "./create-work-form.module.css";
@@ -36,6 +37,7 @@ export function CreateWorkForm({ categories, onCreated, onSuccess }: Props) {
     resolver: zodResolver(createWorkSchema),
     defaultValues: {
       amount: 0,
+      workDate: todayIsoDateString(),
     },
   });
 
@@ -62,7 +64,7 @@ export function CreateWorkForm({ categories, onCreated, onSuccess }: Props) {
         categoryName: selectedCategory.name,
         amount: resolvedAmount,
       });
-      reset({ workDate: "", description: "", categoryId: "", amount: 0 });
+      reset({ workDate: todayIsoDateString(), description: "", categoryId: "", amount: 0 });
       await onCreated();
       onSuccess?.();
     } catch {

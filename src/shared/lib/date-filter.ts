@@ -1,5 +1,14 @@
 export type DateFilterPreset = "all" | "year" | "month" | "range";
 
+/** Поточна локальна дата у форматі YYYY-MM-DD (для `<input type="date">`). */
+export function todayIsoDateString(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 /** `isoDate` у форматі YYYY-MM-DD (як workDate / payoutDate у Firestore). */
 export function matchesDateString(
   isoDate: string,
