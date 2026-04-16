@@ -63,6 +63,10 @@ export function DashboardPage() {
   });
   const [payoutDateRangeFrom, setPayoutDateRangeFrom] = useState("");
   const [payoutDateRangeTo, setPayoutDateRangeTo] = useState("");
+  const [financeMonth, setFinanceMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
 
   const loadData = useCallback(async () => {
     if (!user) {
@@ -355,11 +359,23 @@ export function DashboardPage() {
     payoutColumns[3],
   ];
 
-  const salarySummary = useMemo(() => {
+  /** Нараховано / виплачено / залишок за обраний календарний місяць (workDate / payoutDate = YYYY-MM-DD). */
+  const monthlyFinance = useMemo(() => {
+    const prefix = financeMonth;
+    const earned = works.reduce((acc, work) => {
+      return work.workDate.startsWith(prefix) ? acc + work.amount : acc;
+    }, 0);
+    const paid = salaryPayouts.reduce((acc, payout) => {
+      return payout.payoutDate.startsWith(prefix) ? acc + payout.amount : acc;
+    }, 0);
+    return { earned, paid, balance: earned - paid };
+  }, [financeMonth, salaryPayouts, works]);
+
+  /** Усі дані в обліку (від початку користування / реєстрації в системі). */
+  const allTimeFinance = useMemo(() => {
     const earned = works.reduce((acc, work) => acc + work.amount, 0);
     const paid = salaryPayouts.reduce((acc, payout) => acc + payout.amount, 0);
-    const balance = earned - paid;
-    return { earned, paid, balance };
+    return { earned, paid, balance: earned - paid };
   }, [salaryPayouts, works]);
 
   if (loading || !user) {
@@ -388,6 +404,77 @@ export function DashboardPage() {
           </Button>
         </div>
       </header>
+
+      <section
+        className={styles.financeBanner}
+        aria-label={`${t("dashboard.financeMonthBannerTitle")}, ${t("dashboard.financeAllTimeTitle")}`}
+      >
+        <div className={styles.financeBannerColumn}>
+          <div className={styles.financeBannerHeader}>
+            <h2 className={styles.financeBannerTitle}>{t("dashboard.financeMonthBannerTitle")}</h2>
+            <label className={styles.financeMonthPicker}>
+              <span className={styles.financeMonthLabel}>{t("dashboard.financeMonthPicker")}</span>
+              <input
+                className={styles.dateInput}
+                type="month"
+                value={financeMonth}
+                onChange={(e) => setFinanceMonth(e.target.value)}
+              />
+            </label>
+          </div>
+          <div className={styles.financeBannerGrid}>
+            <div className={styles.financeStat}>
+              <p className={styles.financeStatLabel}>{t("dashboard.monthlyEarnedLabel")}</p>
+              <p className={`${styles.financeStatValue} ${styles.financeStatEarned}`}>{monthlyFinance.earned.toFixed(2)}</p>
+            </div>
+            <div className={styles.financeStat}>
+              <p className={styles.financeStatLabel}>{t("dashboard.monthlyPaidLabel")}</p>
+              <p className={`${styles.financeStatValue} ${styles.financeStatPaid}`}>−{monthlyFinance.paid.toFixed(2)}</p>
+            </div>
+            <div className={styles.financeStat}>
+              <p className={styles.financeStatLabel}>{t("dashboard.monthlyBalanceLabel")}</p>
+              <p
+                className={`${styles.financeStatValue} ${
+                  monthlyFinance.balance >= 0 ? styles.financeStatPositive : styles.financeStatNegative
+                }`}
+              >
+                {monthlyFinance.balance >= 0 ? "+" : ""}
+                {monthlyFinance.balance.toFixed(2)}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.financeBannerDivider} aria-hidden />
+
+        <div className={styles.financeBannerColumn}>
+          <div className={styles.financeAllTimeHeader}>
+            <h2 className={styles.financeBannerTitle}>{t("dashboard.financeAllTimeTitle")}</h2>
+            <p className={styles.financeAllTimeHint}>{t("dashboard.financeAllTimeHint")}</p>
+          </div>
+          <div className={styles.financeBannerGrid}>
+            <div className={styles.financeStat}>
+              <p className={styles.financeStatLabel}>{t("dashboard.allTimeEarnedLabel")}</p>
+              <p className={`${styles.financeStatValue} ${styles.financeStatEarned}`}>{allTimeFinance.earned.toFixed(2)}</p>
+            </div>
+            <div className={styles.financeStat}>
+              <p className={styles.financeStatLabel}>{t("dashboard.allTimePaidLabel")}</p>
+              <p className={`${styles.financeStatValue} ${styles.financeStatPaid}`}>−{allTimeFinance.paid.toFixed(2)}</p>
+            </div>
+            <div className={styles.financeStat}>
+              <p className={styles.financeStatLabel}>{t("dashboard.allTimeBalanceLabel")}</p>
+              <p
+                className={`${styles.financeStatValue} ${
+                  allTimeFinance.balance >= 0 ? styles.financeStatPositive : styles.financeStatNegative
+                }`}
+              >
+                {allTimeFinance.balance >= 0 ? "+" : ""}
+                {allTimeFinance.balance.toFixed(2)}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {user.role === "admin" ? (
         <section className={styles.panel}>

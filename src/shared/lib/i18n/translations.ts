@@ -60,6 +60,16 @@ export const translations = {
       dateFilterMonth: "Місяць",
       dateFilterFrom: "Від",
       dateFilterTo: "До",
+      financeMonthBannerTitle: "Фінанси за місяць",
+      financeMonthPicker: "Обрати місяць",
+      monthlyEarnedLabel: "Нараховано (роботи)",
+      monthlyPaidLabel: "Виплачено",
+      monthlyBalanceLabel: "Залишок",
+      financeAllTimeTitle: "Загалом",
+      financeAllTimeHint: "Усі роботи та виплати в обліку — від початку користування.",
+      allTimeEarnedLabel: "Нараховано (усього)",
+      allTimePaidLabel: "Виплачено (усього)",
+      allTimeBalanceLabel: "Залишок (усього)",
     },
     workForm: {
       title: "Додати роботу",
@@ -132,6 +142,16 @@ export const translations = {
       dateFilterMonth: "Month",
       dateFilterFrom: "From",
       dateFilterTo: "To",
+      financeMonthBannerTitle: "Monthly finances",
+      financeMonthPicker: "Month",
+      monthlyEarnedLabel: "Earned (work)",
+      monthlyPaidLabel: "Paid out",
+      monthlyBalanceLabel: "Balance",
+      financeAllTimeTitle: "Overall",
+      financeAllTimeHint: "All work and payouts on record — from when you started using the app.",
+      allTimeEarnedLabel: "Earned (total)",
+      allTimePaidLabel: "Paid out (total)",
+      allTimeBalanceLabel: "Balance (total)",
     },
     workForm: {
       title: "Add work",
@@ -201,6 +221,16 @@ export type TranslationPath =
   | "dashboard.dateFilterMonth"
   | "dashboard.dateFilterFrom"
   | "dashboard.dateFilterTo"
+  | "dashboard.financeMonthBannerTitle"
+  | "dashboard.financeMonthPicker"
+  | "dashboard.monthlyEarnedLabel"
+  | "dashboard.monthlyPaidLabel"
+  | "dashboard.monthlyBalanceLabel"
+  | "dashboard.financeAllTimeTitle"
+  | "dashboard.financeAllTimeHint"
+  | "dashboard.allTimeEarnedLabel"
+  | "dashboard.allTimePaidLabel"
+  | "dashboard.allTimeBalanceLabel"
   | "workForm.title"
   | "workForm.date"
   | "workForm.description"
