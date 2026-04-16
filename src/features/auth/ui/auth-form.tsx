@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { FirebaseError } from "firebase/app";
 import { authSchema } from "@/shared/lib/validation/schemas";
 import { Input } from "@/shared/ui/input/input";
-import { Button } from "@/shared/ui/button/button";
 import { useAuth } from "@/shared/lib/auth/auth-context";
 import { useI18n } from "@/shared/lib/i18n/i18n-context";
 import { EyeIcon, EyeSlashIcon } from "@/shared/ui/icons/visibility-icons";
@@ -93,9 +92,9 @@ export function AuthForm({ mode }: AuthFormProps) {
         }
       />
       {submitError ? <p className={styles.error}>{submitError}</p> : null}
-      <Button disabled={isSubmitting} type="submit">
+      <button className="btn-tab btn-tab--on" disabled={isSubmitting} type="submit">
         {mode === "login" ? t("auth.submitLogin") : t("auth.submitRegister")}
-      </Button>
+      </button>
     </form>
   );
 }

@@ -16,6 +16,71 @@
   gap: 12px;
 }
 
+/* Співробітник: три вкладки (головна / роботи / витрати), зручно на мобільному */
+.employeeTabBar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--bg);
+  padding: 4px 0 8px;
+  margin: 0 -4px;
+}
+
+.employeeTabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.employeeTabs .adminTabButton {
+  padding: 10px 8px;
+  font-size: 0.875rem;
+  text-align: center;
+  line-height: 1.2;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (min-width: 480px) {
+  .employeeTabs .adminTabButton {
+    font-size: 0.9375rem;
+    padding: 10px 12px;
+  }
+}
+
+.mainOverview {
+  background: var(--surface);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 6px 20px rgba(16, 31, 61, 0.08);
+}
+
+.mainOverviewRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.monthsOnRecord {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.monthsOnRecordValue {
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--primary, #3158f5);
+}
+
 .financeBanner {
   background: linear-gradient(145deg, #f0f4ff 0%, #e8eeff 50%, #eef6ff 100%);
   border: 2px solid rgba(49, 88, 245, 0.35);
@@ -163,19 +228,48 @@
 }
 
 .adminTabButton {
+  margin: 0;
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text);
   border-radius: 10px;
   padding: 9px 12px;
+  font: inherit;
   font-weight: 600;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.adminTabButton:hover:not(:disabled) {
+  background: rgba(49, 88, 245, 0.06);
+}
+
+.adminTabButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .adminTabButtonActive {
   border-color: var(--primary);
   color: var(--primary);
   background: #eef2ff;
+}
+
+.adminTabButtonActive:hover:not(:disabled) {
+  background: #e4e9ff;
+}
+
+/* Кнопка з іконкою в ряд (фільтри) — той самий вигляд, що вкладки */
+.adminTabButtonInline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+
+.adminTabButtonIcon {
+  flex-shrink: 0;
+  opacity: 0.9;
 }
 
 .panel {
@@ -195,10 +289,115 @@
   flex-wrap: wrap;
 }
 
-.filters {
+/* Заголовок робіт + один ряд: фільтри | додати — по 50% ширини */
+.panelHeaderWorks {
   display: grid;
-  grid-template-columns: 1fr;
+  gap: 12px;
+  width: 100%;
+}
+
+.panelHeaderWorksTitle {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.worksPanelButtonRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
+  width: 100%;
+  align-items: stretch;
+}
+
+.worksPanelHalfButton {
+  width: 100%;
+  min-width: 0;
+  justify-content: center;
+}
+
+.worksPanelHalfButton.adminTabButtonInline {
+  justify-content: center;
+}
+
+.worksPanelButtonLabel {
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.filterActiveBadge {
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25rem;
+  text-align: center;
+}
+
+.worksFilterModalScroll {
+  max-height: min(65vh, 480px);
+  overflow-y: auto;
+  display: grid;
+  gap: 18px;
+  padding-right: 4px;
+  margin-bottom: 4px;
+}
+
+.worksFilterModalSection {
+  display: grid;
+  gap: 12px;
+}
+
+.worksFilterModalHeading {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.worksFilterField {
+  display: grid;
+  gap: 6px;
+}
+
+.worksFilterField > span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.worksFilterModalFooter {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+/* Роботи: категорія + дати в одному компактному ряді */
+.worksFiltersToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .search,
@@ -207,6 +406,21 @@
   border-radius: 10px;
   padding: 10px;
   background: #fff;
+}
+
+.worksFiltersToolbar .select,
+.worksFiltersToolbar .dateInput {
+  padding: 8px 10px;
+  min-height: 40px;
+}
+
+.worksFiltersToolbar .filters .select {
+  min-width: min(160px, 100%);
+  flex: 1 1 140px;
+}
+
+.worksFiltersToolbar .filters .select:last-of-type {
+  min-width: min(200px, 100%);
 }
 
 .sortHeader {
@@ -301,15 +515,42 @@
 }
 
 .dateFilters {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
-  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .dateFilterLabel {
   display: grid;
   gap: 4px;
+}
+
+/* У блоці робіт — підпис і поле в один ряд, нижча висота */
+.worksFiltersToolbar .dateFilterLabel {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.worksFiltersToolbar .dateFilterSpan {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.worksFiltersToolbar .dateFilterLabel .select,
+.worksFiltersToolbar .dateFilterLabel .dateInput {
+  width: auto;
+  min-width: 7rem;
+  max-width: 100%;
+  flex: 1 1 8rem;
 }
 
 .dateFilterSpan {
@@ -324,14 +565,4 @@
   background: #fff;
   width: 100%;
   min-width: 0;
-}
-
-@media (min-width: 760px) {
-  .filters {
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  }
-
-  .dateFilters {
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  }
 }

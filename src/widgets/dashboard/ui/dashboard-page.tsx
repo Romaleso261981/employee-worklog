@@ -10,7 +10,6 @@ import { CreateWorkForm } from "@/features/work-entry/ui/create-work-form";
 import { AdminTools } from "@/features/admin/ui/admin-tools";
 import { useAuth } from "@/shared/lib/auth/auth-context";
 import { useI18n } from "@/shared/lib/i18n/i18n-context";
-import { Button } from "@/shared/ui/button/button";
 import { CenteredLoader } from "@/shared/ui/centered-loader/centered-loader";
 import { LanguageSwitcher } from "@/shared/ui/language-switcher/language-switcher";
 import { Modal } from "@/shared/ui/modal/modal";
@@ -20,6 +19,103 @@ import { type DateFilterPreset, matchesDateString } from "@/shared/lib/date-filt
 import styles from "./dashboard-page.module.css";
 
 const PAGE_SIZE = 8;
+
+function FilterSortIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <path strokeLinecap="round" d="M4 6h16M6 12h12M9 18h6" />
+    </svg>
+  );
+}
+
+type FinanceTotals = { earned: number; paid: number; balance: number };
+
+function DashboardFinanceBanner({
+  financeMonth,
+  onFinanceMonthChange,
+  monthlyFinance,
+  allTimeFinance,
+}: {
+  financeMonth: string;
+  onFinanceMonthChange: (value: string) => void;
+  monthlyFinance: FinanceTotals;
+  allTimeFinance: FinanceTotals;
+}) {
+  const { t } = useI18n();
+
+  return (
+    <section
+      className={styles.financeBanner}
+      aria-label={`${t("dashboard.financeMonthBannerTitle")}, ${t("dashboard.financeAllTimeTitle")}`}
+    >
+      <div className={styles.financeBannerColumn}>
+        <div className={styles.financeBannerHeader}>
+          <h2 className={styles.financeBannerTitle}>{t("dashboard.financeMonthBannerTitle")}</h2>
+          <label className={styles.financeMonthPicker}>
+            <span className={styles.financeMonthLabel}>{t("dashboard.financeMonthPicker")}</span>
+            <input
+              className={styles.dateInput}
+              type="month"
+              value={financeMonth}
+              onChange={(e) => onFinanceMonthChange(e.target.value)}
+            />
+          </label>
+        </div>
+        <div className={styles.financeBannerGrid}>
+          <div className={styles.financeStat}>
+            <p className={styles.financeStatLabel}>{t("dashboard.monthlyEarnedLabel")}</p>
+            <p className={`${styles.financeStatValue} ${styles.financeStatEarned}`}>{monthlyFinance.earned.toFixed(2)}</p>
+          </div>
+          <div className={styles.financeStat}>
+            <p className={styles.financeStatLabel}>{t("dashboard.monthlyPaidLabel")}</p>
+            <p className={`${styles.financeStatValue} ${styles.financeStatPaid}`}>−{monthlyFinance.paid.toFixed(2)}</p>
+          </div>
+          <div className={styles.financeStat}>
+            <p className={styles.financeStatLabel}>{t("dashboard.monthlyBalanceLabel")}</p>
+            <p
+              className={`${styles.financeStatValue} ${
+                monthlyFinance.balance >= 0 ? styles.financeStatPositive : styles.financeStatNegative
+              }`}
+            >
+              {monthlyFinance.balance >= 0 ? "+" : ""}
+              {monthlyFinance.balance.toFixed(2)}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className={styles.financeBannerDivider} aria-hidden />
+
+      <div className={styles.financeBannerColumn}>
+        <div className={styles.financeAllTimeHeader}>
+          <h2 className={styles.financeBannerTitle}>{t("dashboard.financeAllTimeTitle")}</h2>
+          <p className={styles.financeAllTimeHint}>{t("dashboard.financeAllTimeHint")}</p>
+        </div>
+        <div className={styles.financeBannerGrid}>
+          <div className={styles.financeStat}>
+            <p className={styles.financeStatLabel}>{t("dashboard.allTimeEarnedLabel")}</p>
+            <p className={`${styles.financeStatValue} ${styles.financeStatEarned}`}>{allTimeFinance.earned.toFixed(2)}</p>
+          </div>
+          <div className={styles.financeStat}>
+            <p className={styles.financeStatLabel}>{t("dashboard.allTimePaidLabel")}</p>
+            <p className={`${styles.financeStatValue} ${styles.financeStatPaid}`}>−{allTimeFinance.paid.toFixed(2)}</p>
+          </div>
+          <div className={styles.financeStat}>
+            <p className={styles.financeStatLabel}>{t("dashboard.allTimeBalanceLabel")}</p>
+            <p
+              className={`${styles.financeStatValue} ${
+                allTimeFinance.balance >= 0 ? styles.financeStatPositive : styles.financeStatNegative
+              }`}
+            >
+              {allTimeFinance.balance >= 0 ? "+" : ""}
+              {allTimeFinance.balance.toFixed(2)}
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
 type SortField = "date" | "description" | "category" | "amount";
 type SortDirection = "desc" | "asc";
 type PayoutSortField = "date" | "description" | "amount" | "worker";
@@ -34,14 +130,13 @@ export function DashboardPage() {
   const [salaryPayouts, setSalaryPayouts] = useState<SalaryPayout[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [workerFilter, setWorkerFilter] = useState("");
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [page, setPage] = useState(1);
   const [adminView, setAdminView] = useState<"works" | "payouts" | "admin">("works");
-  const [employeeView, setEmployeeView] = useState<"works" | "waste">("works");
+  const [employeeView, setEmployeeView] = useState<"main" | "works" | "waste">("main");
   const [dateFilterPreset, setDateFilterPreset] = useState<DateFilterPreset>("all");
   const [dateFilterYear, setDateFilterYear] = useState(() => String(new Date().getFullYear()));
   const [dateFilterMonth, setDateFilterMonth] = useState(() => {
@@ -67,6 +162,7 @@ export function DashboardPage() {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
+  const [worksFilterModalOpen, setWorksFilterModalOpen] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!user) {
@@ -120,11 +216,6 @@ export function DashboardPage() {
 
   const filteredWorks = useMemo(() => {
     return works.filter((item) => {
-      const search = searchTerm.toLowerCase();
-      const matchesSearch =
-        item.description.toLowerCase().includes(search) ||
-        item.workDate.includes(searchTerm) ||
-        item.categoryName.toLowerCase().includes(search);
       const matchesCategory = categoryFilter ? item.categoryId === categoryFilter : true;
       const matchesWorker = workerFilter ? item.userEmail === workerFilter : true;
       const matchesDate = matchesDateString(
@@ -136,11 +227,10 @@ export function DashboardPage() {
         dateRangeTo,
       );
 
-      return matchesSearch && matchesCategory && matchesWorker && matchesDate;
+      return matchesCategory && matchesWorker && matchesDate;
     });
   }, [
     works,
-    searchTerm,
     categoryFilter,
     workerFilter,
     dateFilterPreset,
@@ -153,6 +243,32 @@ export function DashboardPage() {
   const filteredAmountTotal = useMemo(() => {
     return filteredWorks.reduce((acc, item) => acc + item.amount, 0);
   }, [filteredWorks]);
+
+  const worksFiltersActiveCount = useMemo(() => {
+    let n = 0;
+    if (categoryFilter) {
+      n += 1;
+    }
+    if (workerFilter) {
+      n += 1;
+    }
+    if (dateFilterPreset !== "all") {
+      n += 1;
+    }
+    return n;
+  }, [categoryFilter, workerFilter, dateFilterPreset]);
+
+  const resetWorksFilters = useCallback(() => {
+    const d = new Date();
+    setCategoryFilter("");
+    setWorkerFilter("");
+    setDateFilterPreset("all");
+    setDateFilterYear(String(d.getFullYear()));
+    setDateFilterMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    setDateRangeFrom("");
+    setDateRangeTo("");
+    setPage(1);
+  }, []);
 
   const sortedWorks = useMemo(() => {
     return [...filteredWorks].sort((a, b) => {
@@ -174,24 +290,6 @@ export function DashboardPage() {
     });
   }, [filteredWorks, sortDirection, sortField]);
 
-  const toggleSort = (field: SortField) => {
-    setPage(1);
-    if (sortField === field) {
-      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
-      return;
-    }
-
-    setSortField(field);
-    setSortDirection(field === "amount" || field === "date" ? "desc" : "asc");
-  };
-
-  const getSortIcon = (field: SortField) => {
-    if (sortField !== field) {
-      return "";
-    }
-    return sortDirection === "asc" ? "↑" : "↓";
-  };
-
   const pageCount = Math.max(1, Math.ceil(sortedWorks.length / PAGE_SIZE));
   const paginatedWorks = useMemo(() => {
     const from = (page - 1) * PAGE_SIZE;
@@ -201,42 +299,22 @@ export function DashboardPage() {
   const columns: TableColumn<WorkEntry>[] = [
     {
       key: "date",
-      title: (
-        <button type="button" className={styles.sortHeader} onClick={() => toggleSort("date")}>
-          {t("dashboard.dateLabel")}
-          {getSortIcon("date") ? ` ${getSortIcon("date")}` : ""}
-        </button>
-      ),
+      title: t("dashboard.dateLabel"),
       render: (row) => row.workDate,
     },
     {
       key: "description",
-      title: (
-        <button type="button" className={styles.sortHeader} onClick={() => toggleSort("description")}>
-          {t("dashboard.descriptionLabel")}
-          {getSortIcon("description") ? ` ${getSortIcon("description")}` : ""}
-        </button>
-      ),
+      title: t("dashboard.descriptionLabel"),
       render: (row) => row.description,
     },
     {
       key: "category",
-      title: (
-        <button type="button" className={styles.sortHeader} onClick={() => toggleSort("category")}>
-          {t("dashboard.categoryLabel")}
-          {getSortIcon("category") ? ` ${getSortIcon("category")}` : ""}
-        </button>
-      ),
+      title: t("dashboard.categoryLabel"),
       render: (row) => row.categoryName,
     },
     {
       key: "amount",
-      title: (
-        <button type="button" className={styles.sortHeader} onClick={() => toggleSort("amount")}>
-          {t("dashboard.amountLabel")}
-          {getSortIcon("amount") ? ` ${getSortIcon("amount")}` : ""}
-        </button>
-      ),
+      title: t("dashboard.amountLabel"),
       render: (row) => row.amount.toFixed(2),
     },
   ];
@@ -378,6 +456,22 @@ export function DashboardPage() {
     return { earned, paid, balance: earned - paid };
   }, [salaryPayouts, works]);
 
+  /** Скільки різних календарних місяців мають хоча б одну роботу або виплату. */
+  const monthsOnRecord = useMemo(() => {
+    const months = new Set<string>();
+    works.forEach((w) => {
+      if (w.workDate.length >= 7) {
+        months.add(w.workDate.slice(0, 7));
+      }
+    });
+    salaryPayouts.forEach((p) => {
+      if (p.payoutDate.length >= 7) {
+        months.add(p.payoutDate.slice(0, 7));
+      }
+    });
+    return months.size;
+  }, [salaryPayouts, works]);
+
   if (loading || !user) {
     return <CenteredLoader label={t("common.loadingProfile")} />;
   }
@@ -393,88 +487,81 @@ export function DashboardPage() {
         </div>
         <div className={styles.actions}>
           <LanguageSwitcher />
-          <Button
-            variant="ghost"
+          <button
+            type="button"
+            className={styles.adminTabButton}
             onClick={async () => {
               await logout();
               router.replace("/login");
             }}
           >
             {t("common.logout")}
-          </Button>
+          </button>
         </div>
       </header>
 
-      <section
-        className={styles.financeBanner}
-        aria-label={`${t("dashboard.financeMonthBannerTitle")}, ${t("dashboard.financeAllTimeTitle")}`}
-      >
-        <div className={styles.financeBannerColumn}>
-          <div className={styles.financeBannerHeader}>
-            <h2 className={styles.financeBannerTitle}>{t("dashboard.financeMonthBannerTitle")}</h2>
-            <label className={styles.financeMonthPicker}>
-              <span className={styles.financeMonthLabel}>{t("dashboard.financeMonthPicker")}</span>
-              <input
-                className={styles.dateInput}
-                type="month"
-                value={financeMonth}
-                onChange={(e) => setFinanceMonth(e.target.value)}
-              />
-            </label>
-          </div>
-          <div className={styles.financeBannerGrid}>
-            <div className={styles.financeStat}>
-              <p className={styles.financeStatLabel}>{t("dashboard.monthlyEarnedLabel")}</p>
-              <p className={`${styles.financeStatValue} ${styles.financeStatEarned}`}>{monthlyFinance.earned.toFixed(2)}</p>
-            </div>
-            <div className={styles.financeStat}>
-              <p className={styles.financeStatLabel}>{t("dashboard.monthlyPaidLabel")}</p>
-              <p className={`${styles.financeStatValue} ${styles.financeStatPaid}`}>−{monthlyFinance.paid.toFixed(2)}</p>
-            </div>
-            <div className={styles.financeStat}>
-              <p className={styles.financeStatLabel}>{t("dashboard.monthlyBalanceLabel")}</p>
-              <p
-                className={`${styles.financeStatValue} ${
-                  monthlyFinance.balance >= 0 ? styles.financeStatPositive : styles.financeStatNegative
-                }`}
-              >
-                {monthlyFinance.balance >= 0 ? "+" : ""}
-                {monthlyFinance.balance.toFixed(2)}
-              </p>
-            </div>
-          </div>
-        </div>
+      {user.role === "admin" ? (
+        <DashboardFinanceBanner
+          financeMonth={financeMonth}
+          onFinanceMonthChange={setFinanceMonth}
+          monthlyFinance={monthlyFinance}
+          allTimeFinance={allTimeFinance}
+        />
+      ) : null}
 
-        <div className={styles.financeBannerDivider} aria-hidden />
+      {user.role !== "admin" ? (
+        <section className={styles.employeeTabBar}>
+          <div className={styles.employeeTabs}>
+            <button
+              type="button"
+              className={`${styles.adminTabButton} ${employeeView === "main" ? styles.adminTabButtonActive : ""}`}
+              onClick={() => setEmployeeView("main")}
+            >
+              {t("dashboard.tabMain")}
+            </button>
+            <button
+              type="button"
+              className={`${styles.adminTabButton} ${employeeView === "works" ? styles.adminTabButtonActive : ""}`}
+              onClick={() => setEmployeeView("works")}
+            >
+              {t("dashboard.tabWorks")}
+            </button>
+            <button
+              type="button"
+              className={`${styles.adminTabButton} ${employeeView === "waste" ? styles.adminTabButtonActive : ""}`}
+              onClick={() => setEmployeeView("waste")}
+            >
+              {t("dashboard.tabExpenses")}
+            </button>
+          </div>
+        </section>
+      ) : null}
 
-        <div className={styles.financeBannerColumn}>
-          <div className={styles.financeAllTimeHeader}>
-            <h2 className={styles.financeBannerTitle}>{t("dashboard.financeAllTimeTitle")}</h2>
-            <p className={styles.financeAllTimeHint}>{t("dashboard.financeAllTimeHint")}</p>
-          </div>
-          <div className={styles.financeBannerGrid}>
-            <div className={styles.financeStat}>
-              <p className={styles.financeStatLabel}>{t("dashboard.allTimeEarnedLabel")}</p>
-              <p className={`${styles.financeStatValue} ${styles.financeStatEarned}`}>{allTimeFinance.earned.toFixed(2)}</p>
-            </div>
-            <div className={styles.financeStat}>
-              <p className={styles.financeStatLabel}>{t("dashboard.allTimePaidLabel")}</p>
-              <p className={`${styles.financeStatValue} ${styles.financeStatPaid}`}>−{allTimeFinance.paid.toFixed(2)}</p>
-            </div>
-            <div className={styles.financeStat}>
-              <p className={styles.financeStatLabel}>{t("dashboard.allTimeBalanceLabel")}</p>
-              <p
-                className={`${styles.financeStatValue} ${
-                  allTimeFinance.balance >= 0 ? styles.financeStatPositive : styles.financeStatNegative
-                }`}
-              >
-                {allTimeFinance.balance >= 0 ? "+" : ""}
-                {allTimeFinance.balance.toFixed(2)}
+      {user.role !== "admin" && employeeView === "main" ? (
+        <>
+          <section className={styles.mainOverview}>
+            <div className={styles.mainOverviewRow}>
+              <p className={styles.monthsOnRecord}>
+                <span>{t("dashboard.monthsOnRecord")}</span>
+                <strong className={styles.monthsOnRecordValue}>{monthsOnRecord}</strong>
               </p>
+              <button
+                type="button"
+                className={`${styles.adminTabButton} ${styles.adminTabButtonActive}`}
+                onClick={() => setCreateModalOpen(true)}
+              >
+                {t("dashboard.addWork")}
+              </button>
             </div>
-          </div>
-        </div>
-      </section>
+          </section>
+          <DashboardFinanceBanner
+            financeMonth={financeMonth}
+            onFinanceMonthChange={setFinanceMonth}
+            monthlyFinance={monthlyFinance}
+            allTimeFinance={allTimeFinance}
+          />
+        </>
+      ) : null}
 
       {user.role === "admin" ? (
         <section className={styles.panel}>
@@ -504,155 +591,201 @@ export function DashboardPage() {
         </section>
       ) : null}
 
-      {user.role !== "admin" ? (
-        <section className={styles.panel}>
-          <div className={styles.adminTabs}>
-            <button
-              type="button"
-              className={`${styles.adminTabButton} ${employeeView === "works" ? styles.adminTabButtonActive : ""}`}
-              onClick={() => setEmployeeView("works")}
-            >
-              Роботи
-            </button>
-            <button
-              type="button"
-              className={`${styles.adminTabButton} ${employeeView === "waste" ? styles.adminTabButtonActive : ""}`}
-              onClick={() => setEmployeeView("waste")}
-            >
-              Витрати
-            </button>
-          </div>
-        </section>
-      ) : null}
-
       {(user.role === "admin" && adminView === "works") || (user.role !== "admin" && employeeView === "works") ? (
         <section className={styles.panel}>
-        <div className={styles.panelHeader}>
-          <h2>{t("dashboard.works")}</h2>
-          <Button type="button" onClick={() => setCreateModalOpen(true)}>
-            {t("dashboard.addWork")}
-          </Button>
-        </div>
-        <div className={styles.filters}>
-          <input
-            className={styles.search}
-            value={searchTerm}
-            onChange={(event) => {
-              setSearchTerm(event.target.value);
-              setPage(1);
-            }}
-            placeholder={t("common.search")}
-          />
-          <select
-            className={styles.select}
-            value={categoryFilter}
-            onChange={(event) => {
-              setCategoryFilter(event.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="">{t("common.allCategories")}</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-          {user.role === "admin" ? (
-            <select
-              className={styles.select}
-              value={workerFilter}
-              onChange={(event) => {
-                setWorkerFilter(event.target.value);
-                setPage(1);
-              }}
+        <div className={styles.panelHeaderWorks}>
+          <h2 className={styles.panelHeaderWorksTitle}>{t("dashboard.works")}</h2>
+          <div className={styles.worksPanelButtonRow}>
+            <button
+              type="button"
+              className={`${styles.adminTabButton} ${styles.adminTabButtonInline} ${styles.worksPanelHalfButton}`}
+              onClick={() => setWorksFilterModalOpen(true)}
+              aria-expanded={worksFilterModalOpen}
+              aria-haspopup="dialog"
             >
-              <option value="">{t("dashboard.allWorkers")}</option>
-              {workerEmails.map((email) => (
-                <option key={email} value={email}>
-                  {email}
-                </option>
-              ))}
-            </select>
-          ) : null}
+              <FilterSortIcon className={styles.adminTabButtonIcon} />
+              <span className={styles.worksPanelButtonLabel}>{t("dashboard.filtersAndSort")}</span>
+              {worksFiltersActiveCount > 0 ? (
+                <span className={styles.filterActiveBadge}>{worksFiltersActiveCount}</span>
+              ) : null}
+            </button>
+            <button
+              type="button"
+              className={`${styles.adminTabButton} ${styles.adminTabButtonActive} ${styles.worksPanelHalfButton}`}
+              onClick={() => setCreateModalOpen(true)}
+            >
+              {t("dashboard.addWork")}
+            </button>
+          </div>
         </div>
 
-        <div className={styles.dateFilters}>
-          <label className={styles.dateFilterLabel}>
-            <span className={styles.dateFilterSpan}>{t("dashboard.dateFilterMode")}</span>
-            <select
-              className={styles.select}
-              value={dateFilterPreset}
-              onChange={(event) => {
-                setDateFilterPreset(event.target.value as DateFilterPreset);
-                setPage(1);
-              }}
-            >
-              <option value="all">{t("dashboard.dateFilterAll")}</option>
-              <option value="year">{t("dashboard.dateFilterByYear")}</option>
-              <option value="month">{t("dashboard.dateFilterByMonth")}</option>
-              <option value="range">{t("dashboard.dateFilterByRange")}</option>
-            </select>
-          </label>
-          {dateFilterPreset === "year" ? (
-            <label className={styles.dateFilterLabel}>
-              <span className={styles.dateFilterSpan}>{t("dashboard.dateFilterYear")}</span>
-              <input
-                className={styles.dateInput}
-                type="number"
-                min={2000}
-                max={2100}
-                value={dateFilterYear}
-                onChange={(event) => {
-                  setDateFilterYear(event.target.value);
-                  setPage(1);
-                }}
-              />
-            </label>
-          ) : null}
-          {dateFilterPreset === "month" ? (
-            <label className={styles.dateFilterLabel}>
-              <span className={styles.dateFilterSpan}>{t("dashboard.dateFilterMonth")}</span>
-              <input
-                className={styles.dateInput}
-                type="month"
-                value={dateFilterMonth}
-                onChange={(event) => {
-                  setDateFilterMonth(event.target.value);
-                  setPage(1);
-                }}
-              />
-            </label>
-          ) : null}
-          {dateFilterPreset === "range" ? (
-            <>
-              <label className={styles.dateFilterLabel}>
-                <span className={styles.dateFilterSpan}>{t("dashboard.dateFilterFrom")}</span>
-                <input
-                  className={styles.dateInput}
-                  type="date"
-                  value={dateRangeFrom}
+        <Modal
+          isOpen={worksFilterModalOpen}
+          title={t("dashboard.filtersAndSort")}
+          onClose={() => setWorksFilterModalOpen(false)}
+        >
+          <div className={styles.worksFilterModalScroll}>
+            <div className={styles.worksFilterModalSection}>
+              <h3 className={styles.worksFilterModalHeading}>{t("dashboard.filtersSection")}</h3>
+              <label className={styles.worksFilterField}>
+                <span>{t("dashboard.categoryLabel")}</span>
+                <select
+                  className={styles.select}
+                  value={categoryFilter}
                   onChange={(event) => {
-                    setDateRangeFrom(event.target.value);
+                    setCategoryFilter(event.target.value);
                     setPage(1);
                   }}
-                />
+                >
+                  <option value="">{t("common.allCategories")}</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
               </label>
-              <label className={styles.dateFilterLabel}>
-                <span className={styles.dateFilterSpan}>{t("dashboard.dateFilterTo")}</span>
-                <input
-                  className={styles.dateInput}
-                  type="date"
-                  value={dateRangeTo}
+              {user.role === "admin" ? (
+                <label className={styles.worksFilterField}>
+                  <span>{t("dashboard.workerFilterLabel")}</span>
+                  <select
+                    className={styles.select}
+                    value={workerFilter}
+                    onChange={(event) => {
+                      setWorkerFilter(event.target.value);
+                      setPage(1);
+                    }}
+                  >
+                    <option value="">{t("dashboard.allWorkers")}</option>
+                    {workerEmails.map((email) => (
+                      <option key={email} value={email}>
+                        {email}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+              <label className={styles.worksFilterField}>
+                <span>{t("dashboard.dateFilterMode")}</span>
+                <select
+                  className={styles.select}
+                  value={dateFilterPreset}
                   onChange={(event) => {
-                    setDateRangeTo(event.target.value);
+                    setDateFilterPreset(event.target.value as DateFilterPreset);
                     setPage(1);
                   }}
-                />
+                >
+                  <option value="all">{t("dashboard.dateFilterAll")}</option>
+                  <option value="year">{t("dashboard.dateFilterByYear")}</option>
+                  <option value="month">{t("dashboard.dateFilterByMonth")}</option>
+                  <option value="range">{t("dashboard.dateFilterByRange")}</option>
+                </select>
               </label>
-            </>
-          ) : null}
-        </div>
+              {dateFilterPreset === "year" ? (
+                <label className={styles.worksFilterField}>
+                  <span>{t("dashboard.dateFilterYear")}</span>
+                  <input
+                    className={styles.dateInput}
+                    type="number"
+                    min={2000}
+                    max={2100}
+                    value={dateFilterYear}
+                    onChange={(event) => {
+                      setDateFilterYear(event.target.value);
+                      setPage(1);
+                    }}
+                  />
+                </label>
+              ) : null}
+              {dateFilterPreset === "month" ? (
+                <label className={styles.worksFilterField}>
+                  <span>{t("dashboard.dateFilterMonth")}</span>
+                  <input
+                    className={styles.dateInput}
+                    type="month"
+                    value={dateFilterMonth}
+                    onChange={(event) => {
+                      setDateFilterMonth(event.target.value);
+                      setPage(1);
+                    }}
+                  />
+                </label>
+              ) : null}
+              {dateFilterPreset === "range" ? (
+                <>
+                  <label className={styles.worksFilterField}>
+                    <span>{t("dashboard.dateFilterFrom")}</span>
+                    <input
+                      className={styles.dateInput}
+                      type="date"
+                      value={dateRangeFrom}
+                      onChange={(event) => {
+                        setDateRangeFrom(event.target.value);
+                        setPage(1);
+                      }}
+                    />
+                  </label>
+                  <label className={styles.worksFilterField}>
+                    <span>{t("dashboard.dateFilterTo")}</span>
+                    <input
+                      className={styles.dateInput}
+                      type="date"
+                      value={dateRangeTo}
+                      onChange={(event) => {
+                        setDateRangeTo(event.target.value);
+                        setPage(1);
+                      }}
+                    />
+                  </label>
+                </>
+              ) : null}
+            </div>
+
+            <div className={styles.worksFilterModalSection}>
+              <h3 className={styles.worksFilterModalHeading}>{t("dashboard.sortSection")}</h3>
+              <label className={styles.worksFilterField}>
+                <span>{t("dashboard.sortByLabel")}</span>
+                <select
+                  className={styles.select}
+                  value={sortField}
+                  onChange={(event) => {
+                    const field = event.target.value as SortField;
+                    setSortField(field);
+                    setSortDirection(field === "amount" || field === "date" ? "desc" : "asc");
+                    setPage(1);
+                  }}
+                >
+                  <option value="date">{t("dashboard.dateLabel")}</option>
+                  <option value="description">{t("dashboard.descriptionLabel")}</option>
+                  <option value="category">{t("dashboard.categoryLabel")}</option>
+                  <option value="amount">{t("dashboard.amountLabel")}</option>
+                </select>
+              </label>
+              <label className={styles.worksFilterField}>
+                <span>{t("dashboard.sortDirectionLabel")}</span>
+                <select
+                  className={styles.select}
+                  value={sortDirection}
+                  onChange={(event) => {
+                    setSortDirection(event.target.value as SortDirection);
+                    setPage(1);
+                  }}
+                >
+                  <option value="desc">{t("dashboard.sortDirectionDesc")}</option>
+                  <option value="asc">{t("dashboard.sortDirectionAsc")}</option>
+                </select>
+              </label>
+            </div>
+          </div>
+          <div className={styles.worksFilterModalFooter}>
+            <button type="button" className={styles.adminTabButton} onClick={resetWorksFilters}>
+              {t("dashboard.resetFilters")}
+            </button>
+            <button type="button" className={`${styles.adminTabButton} ${styles.adminTabButtonActive}`} onClick={() => setWorksFilterModalOpen(false)}>
+              {t("dashboard.done")}
+            </button>
+          </div>
+        </Modal>
 
         {filteredWorks.length > 0 ? (
           <div className={styles.worksTotalBanner} role="status" aria-live="polite">
@@ -665,20 +798,20 @@ export function DashboardPage() {
         <Table columns={columns} rows={paginatedWorks} rowKey={(row) => row.id} />
 
         <div className={styles.pagination}>
-          <Button variant="ghost" type="button" disabled={page === 1} onClick={() => setPage((prev) => Math.max(1, prev - 1))}>
+          <button type="button" className={styles.adminTabButton} disabled={page === 1} onClick={() => setPage((prev) => Math.max(1, prev - 1))}>
             {t("common.prev")}
-          </Button>
+          </button>
           <span>
             {t("common.page")} {page}/{pageCount}
           </span>
-          <Button
-            variant="ghost"
+          <button
             type="button"
+            className={styles.adminTabButton}
             disabled={page === pageCount}
             onClick={() => setPage((prev) => Math.min(pageCount, prev + 1))}
           >
             {t("common.next")}
-          </Button>
+          </button>
         </div>
         </section>
       ) : null}
@@ -802,20 +935,20 @@ export function DashboardPage() {
           <Table columns={user.role === "admin" ? payoutColumns : employeePayoutColumns} rows={paginatedPayoutsAdmin} rowKey={(row) => row.id} />
 
           <div className={styles.pagination}>
-            <Button variant="ghost" type="button" disabled={payoutPage === 1} onClick={() => setPayoutPage((prev) => Math.max(1, prev - 1))}>
+            <button type="button" className={styles.adminTabButton} disabled={payoutPage === 1} onClick={() => setPayoutPage((prev) => Math.max(1, prev - 1))}>
               {t("common.prev")}
-            </Button>
+            </button>
             <span>
               {t("common.page")} {payoutPage}/{payoutPageCount}
             </span>
-            <Button
-              variant="ghost"
+            <button
               type="button"
+              className={styles.adminTabButton}
               disabled={payoutPage === payoutPageCount}
               onClick={() => setPayoutPage((prev) => Math.min(payoutPageCount, prev + 1))}
             >
               {t("common.next")}
-            </Button>
+            </button>
           </div>
         </section>
       ) : null}

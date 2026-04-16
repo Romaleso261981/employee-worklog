@@ -37,3 +37,35 @@ select,
 textarea {
   font: inherit;
 }
+
+/* Кнопки в стилі вкладок дашборду (Головна / Роботи / Витрати) — для узгодженості в модалках і формах */
+.btn-tab {
+  margin: 0;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-tab:hover:not(:disabled) {
+  background: rgba(49, 88, 245, 0.06);
+}
+
+.btn-tab:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-tab--on {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: #eef2ff;
+}
+
+.btn-tab--on:hover:not(:disabled) {
+  background: #e4e9ff;
+}

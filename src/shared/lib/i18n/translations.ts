@@ -70,6 +70,18 @@ export const translations = {
       allTimeEarnedLabel: "Нараховано (усього)",
       allTimePaidLabel: "Виплачено (усього)",
       allTimeBalanceLabel: "Залишок (усього)",
+      tabMain: "Головна",
+      tabWorks: "Роботи",
+      tabExpenses: "Витрати",
+      monthsOnRecord: "Місяців у обліку",
+      filtersAndSort: "Фільтри та сортування",
+      filtersSection: "Фільтри",
+      sortSection: "Сортування",
+      sortByLabel: "За полем",
+      sortDirectionLabel: "Напрямок",
+      resetFilters: "Скинути фільтри",
+      done: "Готово",
+      workerFilterLabel: "Працівник",
     },
     workForm: {
       title: "Додати роботу",
@@ -152,6 +164,18 @@ export const translations = {
       allTimeEarnedLabel: "Earned (total)",
       allTimePaidLabel: "Paid out (total)",
       allTimeBalanceLabel: "Balance (total)",
+      tabMain: "Home",
+      tabWorks: "Work",
+      tabExpenses: "Expenses",
+      monthsOnRecord: "Months on record",
+      filtersAndSort: "Filters & sort",
+      filtersSection: "Filters",
+      sortSection: "Sort",
+      sortByLabel: "Sort by",
+      sortDirectionLabel: "Direction",
+      resetFilters: "Reset filters",
+      done: "Done",
+      workerFilterLabel: "Worker",
     },
     workForm: {
       title: "Add work",
@@ -231,6 +255,18 @@ export type TranslationPath =
   | "dashboard.allTimeEarnedLabel"
   | "dashboard.allTimePaidLabel"
   | "dashboard.allTimeBalanceLabel"
+  | "dashboard.tabMain"
+  | "dashboard.tabWorks"
+  | "dashboard.tabExpenses"
+  | "dashboard.monthsOnRecord"
+  | "dashboard.filtersAndSort"
+  | "dashboard.filtersSection"
+  | "dashboard.sortSection"
+  | "dashboard.sortByLabel"
+  | "dashboard.sortDirectionLabel"
+  | "dashboard.resetFilters"
+  | "dashboard.done"
+  | "dashboard.workerFilterLabel"
   | "workForm.title"
   | "workForm.date"
   | "workForm.description"

@@ -8,6 +8,14 @@
   box-shadow: 0 10px 24px rgba(16, 31, 61, 0.08);
 }
 
+.form :global(.btn-tab) {
+  width: 100%;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 44px;
+}
+
 .error {
   color: var(--danger);
 }

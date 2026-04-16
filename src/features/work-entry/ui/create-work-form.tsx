@@ -6,7 +6,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { createWorkSchema } from "@/shared/lib/validation/schemas";
 import { Input } from "@/shared/ui/input/input";
-import { Button } from "@/shared/ui/button/button";
 import { Category } from "@/entities/category/model/types";
 import { createWorkEntry } from "@/entities/work/model/work-service";
 import { todayIsoDateString } from "@/shared/lib/date-filter";
@@ -97,9 +96,9 @@ export function CreateWorkForm({ categories, onCreated, onSuccess }: Props) {
         <Input label={t("workForm.amountOptional")} type="number" min={0} step="0.01" {...register("amount")} error={errors.amount?.message} />
       ) : null}
       {submitError ? <p className={styles.error}>{submitError}</p> : null}
-      <Button disabled={isSubmitting} type="submit">
+      <button className="btn-tab btn-tab--on" disabled={isSubmitting} type="submit">
         {t("workForm.saveWork")}
-      </Button>
+      </button>
     </form>
   );
 }
