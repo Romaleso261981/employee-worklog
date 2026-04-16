@@ -73,6 +73,8 @@ export const translations = {
       tabMain: "Головна",
       tabWorks: "Роботи",
       tabExpenses: "Витрати",
+      salaryPayoutsSectionTitle: "Виплачені зарплати",
+      noPayoutsMatchFilter: "Виплат не знайдено за фільтром.",
       monthsOnRecord: "Місяців у обліку",
       filtersAndSort: "Фільтри та сортування",
       filtersSection: "Фільтри",
@@ -167,6 +169,8 @@ export const translations = {
       tabMain: "Home",
       tabWorks: "Work",
       tabExpenses: "Expenses",
+      salaryPayoutsSectionTitle: "Salary payouts",
+      noPayoutsMatchFilter: "No payouts match the filter.",
       monthsOnRecord: "Months on record",
       filtersAndSort: "Filters & sort",
       filtersSection: "Filters",
@@ -258,6 +262,8 @@ export type TranslationPath =
   | "dashboard.tabMain"
   | "dashboard.tabWorks"
   | "dashboard.tabExpenses"
+  | "dashboard.salaryPayoutsSectionTitle"
+  | "dashboard.noPayoutsMatchFilter"
   | "dashboard.monthsOnRecord"
   | "dashboard.filtersAndSort"
   | "dashboard.filtersSection"

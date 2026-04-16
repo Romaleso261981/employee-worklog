@@ -163,6 +163,7 @@ export function DashboardPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
   const [worksFilterModalOpen, setWorksFilterModalOpen] = useState(false);
+  const [payoutFilterModalOpen, setPayoutFilterModalOpen] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!user) {
@@ -375,58 +376,51 @@ export function DashboardPage() {
     return sortedPayoutsAdmin.slice(from, from + PAGE_SIZE);
   }, [sortedPayoutsAdmin, payoutPage]);
 
-  const togglePayoutSort = (field: PayoutSortField) => {
-    setPayoutPage(1);
-    if (payoutSortField === field) {
-      setPayoutSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
-      return;
+  const payoutFiltersActiveCount = useMemo(() => {
+    let n = 0;
+    if (payoutSearchTerm.trim()) {
+      n += 1;
     }
-    setPayoutSortField(field);
-    setPayoutSortDirection(field === "amount" || field === "date" ? "desc" : "asc");
-  };
+    if (payoutWorkerFilter) {
+      n += 1;
+    }
+    if (payoutDateFilterPreset !== "all") {
+      n += 1;
+    }
+    return n;
+  }, [payoutDateFilterPreset, payoutSearchTerm, payoutWorkerFilter]);
 
-  const getPayoutSortIcon = (field: PayoutSortField) => {
-    if (payoutSortField !== field) {
-      return "";
-    }
-    return payoutSortDirection === "asc" ? "↑" : "↓";
-  };
+  const resetPayoutFilters = useCallback(() => {
+    const d = new Date();
+    setPayoutSearchTerm("");
+    setPayoutWorkerFilter("");
+    setPayoutDateFilterPreset("all");
+    setPayoutDateFilterYear(String(d.getFullYear()));
+    setPayoutDateFilterMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    setPayoutDateRangeFrom("");
+    setPayoutDateRangeTo("");
+    setPayoutPage(1);
+  }, []);
 
   const payoutColumns: TableColumn<SalaryPayout>[] = [
     {
       key: "date",
-      title: (
-        <button type="button" className={styles.sortHeader} onClick={() => togglePayoutSort("date")}>
-          Дата{getPayoutSortIcon("date") ? ` ${getPayoutSortIcon("date")}` : ""}
-        </button>
-      ),
+      title: t("dashboard.dateLabel"),
       render: (row) => row.payoutDate,
     },
     {
       key: "worker",
-      title: (
-        <button type="button" className={styles.sortHeader} onClick={() => togglePayoutSort("worker")}>
-          Працівник{getPayoutSortIcon("worker") ? ` ${getPayoutSortIcon("worker")}` : ""}
-        </button>
-      ),
+      title: t("dashboard.workerFilterLabel"),
       render: (row) => row.userEmail,
     },
     {
       key: "description",
-      title: (
-        <button type="button" className={styles.sortHeader} onClick={() => togglePayoutSort("description")}>
-          Опис{getPayoutSortIcon("description") ? ` ${getPayoutSortIcon("description")}` : ""}
-        </button>
-      ),
+      title: t("dashboard.descriptionLabel"),
       render: (row) => row.description,
     },
     {
       key: "amount",
-      title: (
-        <button type="button" className={styles.sortHeader} onClick={() => togglePayoutSort("amount")}>
-          Сума{getPayoutSortIcon("amount") ? ` ${getPayoutSortIcon("amount")}` : ""}
-        </button>
-      ),
+      title: t("dashboard.amountLabel"),
       render: (row) => `-${row.amount.toFixed(2)}`,
     },
   ];
@@ -818,120 +812,204 @@ export function DashboardPage() {
 
       {(user.role === "admin" && adminView === "payouts") || (user.role !== "admin" && employeeView === "waste") ? (
         <section className={styles.panel}>
-          <h2>{user.role === "admin" ? "Виплачені зарплати" : "Витрати"}</h2>
-          <div className={styles.filters}>
-            <input
-              className={styles.search}
-              value={payoutSearchTerm}
-              onChange={(event) => {
-                setPayoutSearchTerm(event.target.value);
-                setPayoutPage(1);
-              }}
-              placeholder={t("common.search")}
-            />
-            {user.role === "admin" ? (
-              <select
-                className={styles.select}
-                value={payoutWorkerFilter}
-                onChange={(event) => {
-                  setPayoutWorkerFilter(event.target.value);
-                  setPayoutPage(1);
-                }}
+          <div className={styles.panelHeaderWorks}>
+            <h2 className={styles.panelHeaderWorksTitle}>
+              {user.role === "admin" ? t("dashboard.salaryPayoutsSectionTitle") : t("dashboard.tabExpenses")}
+            </h2>
+            <div className={styles.worksPanelButtonRowSingle}>
+              <button
+                type="button"
+                className={`${styles.adminTabButton} ${styles.adminTabButtonInline} ${styles.worksPanelHalfButton}`}
+                onClick={() => setPayoutFilterModalOpen(true)}
+                aria-expanded={payoutFilterModalOpen}
+                aria-haspopup="dialog"
               >
-                <option value="">{t("dashboard.allWorkers")}</option>
-                {payoutWorkerEmails.map((email) => (
-                  <option key={email} value={email}>
-                    {email}
-                  </option>
-                ))}
-              </select>
-            ) : null}
+                <FilterSortIcon className={styles.adminTabButtonIcon} />
+                <span className={styles.worksPanelButtonLabel}>{t("dashboard.filtersAndSort")}</span>
+                {payoutFiltersActiveCount > 0 ? (
+                  <span className={styles.filterActiveBadge}>{payoutFiltersActiveCount}</span>
+                ) : null}
+              </button>
+            </div>
           </div>
 
-          <div className={styles.dateFilters}>
-            <label className={styles.dateFilterLabel}>
-              <span className={styles.dateFilterSpan}>Фільтр дат</span>
-              <select
-                className={styles.select}
-                value={payoutDateFilterPreset}
-                onChange={(event) => {
-                  setPayoutDateFilterPreset(event.target.value as DateFilterPreset);
-                  setPayoutPage(1);
-                }}
+          <Modal
+            isOpen={payoutFilterModalOpen}
+            title={t("dashboard.filtersAndSort")}
+            onClose={() => setPayoutFilterModalOpen(false)}
+          >
+            <div className={styles.worksFilterModalScroll}>
+              <div className={styles.worksFilterModalSection}>
+                <h3 className={styles.worksFilterModalHeading}>{t("dashboard.filtersSection")}</h3>
+                <label className={styles.worksFilterField}>
+                  <span>{t("common.search")}</span>
+                  <input
+                    className={styles.search}
+                    value={payoutSearchTerm}
+                    onChange={(event) => {
+                      setPayoutSearchTerm(event.target.value);
+                      setPayoutPage(1);
+                    }}
+                    placeholder={t("common.search")}
+                  />
+                </label>
+                {user.role === "admin" ? (
+                  <label className={styles.worksFilterField}>
+                    <span>{t("dashboard.workerFilterLabel")}</span>
+                    <select
+                      className={styles.select}
+                      value={payoutWorkerFilter}
+                      onChange={(event) => {
+                        setPayoutWorkerFilter(event.target.value);
+                        setPayoutPage(1);
+                      }}
+                    >
+                      <option value="">{t("dashboard.allWorkers")}</option>
+                      {payoutWorkerEmails.map((email) => (
+                        <option key={email} value={email}>
+                          {email}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+                <label className={styles.worksFilterField}>
+                  <span>{t("dashboard.dateFilterMode")}</span>
+                  <select
+                    className={styles.select}
+                    value={payoutDateFilterPreset}
+                    onChange={(event) => {
+                      setPayoutDateFilterPreset(event.target.value as DateFilterPreset);
+                      setPayoutPage(1);
+                    }}
+                  >
+                    <option value="all">{t("dashboard.dateFilterAll")}</option>
+                    <option value="year">{t("dashboard.dateFilterByYear")}</option>
+                    <option value="month">{t("dashboard.dateFilterByMonth")}</option>
+                    <option value="range">{t("dashboard.dateFilterByRange")}</option>
+                  </select>
+                </label>
+                {payoutDateFilterPreset === "year" ? (
+                  <label className={styles.worksFilterField}>
+                    <span>{t("dashboard.dateFilterYear")}</span>
+                    <input
+                      className={styles.dateInput}
+                      type="number"
+                      min={2000}
+                      max={2100}
+                      value={payoutDateFilterYear}
+                      onChange={(event) => {
+                        setPayoutDateFilterYear(event.target.value);
+                        setPayoutPage(1);
+                      }}
+                    />
+                  </label>
+                ) : null}
+                {payoutDateFilterPreset === "month" ? (
+                  <label className={styles.worksFilterField}>
+                    <span>{t("dashboard.dateFilterMonth")}</span>
+                    <input
+                      className={styles.dateInput}
+                      type="month"
+                      value={payoutDateFilterMonth}
+                      onChange={(event) => {
+                        setPayoutDateFilterMonth(event.target.value);
+                        setPayoutPage(1);
+                      }}
+                    />
+                  </label>
+                ) : null}
+                {payoutDateFilterPreset === "range" ? (
+                  <>
+                    <label className={styles.worksFilterField}>
+                      <span>{t("dashboard.dateFilterFrom")}</span>
+                      <input
+                        className={styles.dateInput}
+                        type="date"
+                        value={payoutDateRangeFrom}
+                        onChange={(event) => {
+                          setPayoutDateRangeFrom(event.target.value);
+                          setPayoutPage(1);
+                        }}
+                      />
+                    </label>
+                    <label className={styles.worksFilterField}>
+                      <span>{t("dashboard.dateFilterTo")}</span>
+                      <input
+                        className={styles.dateInput}
+                        type="date"
+                        value={payoutDateRangeTo}
+                        onChange={(event) => {
+                          setPayoutDateRangeTo(event.target.value);
+                          setPayoutPage(1);
+                        }}
+                      />
+                    </label>
+                  </>
+                ) : null}
+              </div>
+
+              <div className={styles.worksFilterModalSection}>
+                <h3 className={styles.worksFilterModalHeading}>{t("dashboard.sortSection")}</h3>
+                <label className={styles.worksFilterField}>
+                  <span>{t("dashboard.sortByLabel")}</span>
+                  <select
+                    className={styles.select}
+                    value={payoutSortField}
+                    onChange={(event) => {
+                      const field = event.target.value as PayoutSortField;
+                      setPayoutSortField(field);
+                      setPayoutSortDirection(field === "amount" || field === "date" ? "desc" : "asc");
+                      setPayoutPage(1);
+                    }}
+                  >
+                    <option value="date">{t("dashboard.dateLabel")}</option>
+                    {user.role === "admin" ? <option value="worker">{t("dashboard.workerFilterLabel")}</option> : null}
+                    <option value="description">{t("dashboard.descriptionLabel")}</option>
+                    <option value="amount">{t("dashboard.amountLabel")}</option>
+                  </select>
+                </label>
+                <label className={styles.worksFilterField}>
+                  <span>{t("dashboard.sortDirectionLabel")}</span>
+                  <select
+                    className={styles.select}
+                    value={payoutSortDirection}
+                    onChange={(event) => {
+                      setPayoutSortDirection(event.target.value as SortDirection);
+                      setPayoutPage(1);
+                    }}
+                  >
+                    <option value="desc">{t("dashboard.sortDirectionDesc")}</option>
+                    <option value="asc">{t("dashboard.sortDirectionAsc")}</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+            <div className={styles.worksFilterModalFooter}>
+              <button type="button" className={styles.adminTabButton} onClick={resetPayoutFilters}>
+                {t("dashboard.resetFilters")}
+              </button>
+              <button
+                type="button"
+                className={`${styles.adminTabButton} ${styles.adminTabButtonActive}`}
+                onClick={() => setPayoutFilterModalOpen(false)}
               >
-                <option value="all">{t("dashboard.dateFilterAll")}</option>
-                <option value="year">{t("dashboard.dateFilterByYear")}</option>
-                <option value="month">{t("dashboard.dateFilterByMonth")}</option>
-                <option value="range">{t("dashboard.dateFilterByRange")}</option>
-              </select>
-            </label>
-            {payoutDateFilterPreset === "year" ? (
-              <label className={styles.dateFilterLabel}>
-                <span className={styles.dateFilterSpan}>{t("dashboard.dateFilterYear")}</span>
-                <input
-                  className={styles.dateInput}
-                  type="number"
-                  min={2000}
-                  max={2100}
-                  value={payoutDateFilterYear}
-                  onChange={(event) => {
-                    setPayoutDateFilterYear(event.target.value);
-                    setPayoutPage(1);
-                  }}
-                />
-              </label>
-            ) : null}
-            {payoutDateFilterPreset === "month" ? (
-              <label className={styles.dateFilterLabel}>
-                <span className={styles.dateFilterSpan}>{t("dashboard.dateFilterMonth")}</span>
-                <input
-                  className={styles.dateInput}
-                  type="month"
-                  value={payoutDateFilterMonth}
-                  onChange={(event) => {
-                    setPayoutDateFilterMonth(event.target.value);
-                    setPayoutPage(1);
-                  }}
-                />
-              </label>
-            ) : null}
-            {payoutDateFilterPreset === "range" ? (
-              <>
-                <label className={styles.dateFilterLabel}>
-                  <span className={styles.dateFilterSpan}>{t("dashboard.dateFilterFrom")}</span>
-                  <input
-                    className={styles.dateInput}
-                    type="date"
-                    value={payoutDateRangeFrom}
-                    onChange={(event) => {
-                      setPayoutDateRangeFrom(event.target.value);
-                      setPayoutPage(1);
-                    }}
-                  />
-                </label>
-                <label className={styles.dateFilterLabel}>
-                  <span className={styles.dateFilterSpan}>{t("dashboard.dateFilterTo")}</span>
-                  <input
-                    className={styles.dateInput}
-                    type="date"
-                    value={payoutDateRangeTo}
-                    onChange={(event) => {
-                      setPayoutDateRangeTo(event.target.value);
-                      setPayoutPage(1);
-                    }}
-                  />
-                </label>
-              </>
-            ) : null}
-          </div>
+                {t("dashboard.done")}
+              </button>
+            </div>
+          </Modal>
 
           {filteredPayoutsAdmin.length > 0 ? (
-            <div className={styles.payoutsTotalBanner}>
-              <span className={styles.worksTotalLabel}>Разом виплачено (за фільтром)</span>
-              <strong className={styles.payoutsTotalValue}>{payoutFilteredTotal.toFixed(2)}</strong>
+            <div className={styles.worksTotalBanner} role="status" aria-live="polite">
+              <span className={styles.worksTotalLabel}>{t("dashboard.filteredTotalLabel")}</span>
+              <strong
+                className={user.role !== "admin" ? styles.wasteTotalValue : styles.worksTotalValue}
+              >
+                {payoutFilteredTotal.toFixed(2)}
+              </strong>
             </div>
           ) : null}
-          {!dataLoading && sortedPayoutsAdmin.length === 0 ? <p>Виплат не знайдено.</p> : null}
+          {!dataLoading && sortedPayoutsAdmin.length === 0 ? <p>{t("dashboard.noPayoutsMatchFilter")}</p> : null}
           <Table columns={user.role === "admin" ? payoutColumns : employeePayoutColumns} rows={paginatedPayoutsAdmin} rowKey={(row) => row.id} />
 
           <div className={styles.pagination}>
