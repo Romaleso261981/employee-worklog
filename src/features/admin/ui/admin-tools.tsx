@@ -898,15 +898,17 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
 }
 
 function AmountRow({ work, onDataChanged }: { work: WorkEntry; onDataChanged: () => Promise<void> }) {
-  type EditFormValues = z.output<typeof workAdminEditSchema>;
   const [isEditingDescription, setEditingDescription] = useState(false);
+  const [isEditingAmount, setEditingAmount] = useState(false);
+  const [pending, setPending] = useState(false);
   const {
     register,
-    handleSubmit,
+    getValues,
     reset,
-    formState: { errors, isSubmitting },
-  } = useForm<z.input<typeof workAdminEditSchema>, unknown, EditFormValues>({
-    resolver: zodResolver(workAdminEditSchema),
+    setError,
+    clearErrors,
+    formState: { errors },
+  } = useForm<{ amount: number; description: string }>({
     defaultValues: { amount: work.amount, description: work.description },
   });
 
@@ -914,14 +916,52 @@ function AmountRow({ work, onDataChanged }: { work: WorkEntry; onDataChanged: ()
     reset({ amount: work.amount, description: work.description });
   }, [reset, work.amount, work.description]);
 
-  const onSubmit = handleSubmit(async (values) => {
-    await updateWorkEntryAdmin(work.id, { amount: values.amount, description: values.description });
-    await onDataChanged();
-    setEditingDescription(false);
-  });
+  const handleDescriptionSave = async () => {
+    const parsed = workAdminEditSchema.pick({ description: true }).safeParse({ description: getValues("description") });
+    if (!parsed.success) {
+      const msg = parsed.error.issues[0]?.message ?? "Невірний опис";
+      setError("description", { message: msg });
+      return;
+    }
+    clearErrors("description");
+    setPending(true);
+    try {
+      await updateWorkEntryAdmin(work.id, { amount: work.amount, description: parsed.data.description });
+      await onDataChanged();
+      setEditingDescription(false);
+      reset({ amount: work.amount, description: parsed.data.description });
+    } catch {
+      setError("description", { message: "Не вдалося зберегти" });
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const handleAmountSave = async () => {
+    const parsed = workAdminEditSchema.pick({ amount: true }).safeParse({ amount: getValues("amount") });
+    if (!parsed.success) {
+      const msg = parsed.error.issues[0]?.message ?? "Невірна сума";
+      setError("amount", { message: msg });
+      return;
+    }
+    clearErrors("amount");
+    setPending(true);
+    try {
+      await updateWorkEntryAdmin(work.id, { amount: parsed.data.amount, description: work.description });
+      await onDataChanged();
+      setEditingAmount(false);
+      reset({ amount: parsed.data.amount, description: work.description });
+    } catch {
+      setError("amount", { message: "Не вдалося зберегти" });
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const amountLocked = isEditingDescription || !isEditingAmount;
 
   return (
-    <form className={styles.row} onSubmit={onSubmit}>
+    <div className={styles.row}>
       <div className={styles.info}>
         <p className={styles.description}>{work.userEmail}</p>
         <p className={styles.meta}>
@@ -937,6 +977,7 @@ function AmountRow({ work, onDataChanged }: { work: WorkEntry; onDataChanged: ()
                 aria-label="Редагувати опис"
                 onClick={() => {
                   reset({ amount: work.amount, description: work.description });
+                  setEditingAmount(false);
                   setEditingDescription(true);
                 }}
               >
@@ -948,13 +989,13 @@ function AmountRow({ work, onDataChanged }: { work: WorkEntry; onDataChanged: ()
               <textarea className={styles.textarea} rows={2} {...register("description")} />
               {errors.description ? <small className={styles.error}>{errors.description.message}</small> : null}
               <div className={styles.editorActions}>
-                <Button disabled={isSubmitting} type="submit">
+                <Button type="button" disabled={pending} onClick={() => void handleDescriptionSave()}>
                   Зберегти
                 </Button>
                 <Button
                   type="button"
                   variant="ghost"
-                  disabled={isSubmitting}
+                  disabled={pending}
                   onClick={() => {
                     reset({ amount: work.amount, description: work.description });
                     setEditingDescription(false);
@@ -967,13 +1008,49 @@ function AmountRow({ work, onDataChanged }: { work: WorkEntry; onDataChanged: ()
           )}
         </div>
       </div>
-      <div className={styles.amountGroup}>
-        <input className={styles.amountInput} type="number" min={0} step="0.01" {...register("amount")} />
-        <Button disabled={isSubmitting || isEditingDescription} type="submit">
-          Оновити
-        </Button>
+      <div className={styles.amountBlock}>
+        <div className={styles.amountGroup}>
+          {amountLocked ? (
+            <>
+              <span className={styles.amountReadonly}>{work.amount.toFixed(2)}</span>
+              {!isEditingDescription ? (
+                <button
+                  type="button"
+                  className={styles.iconButton}
+                  aria-label="Редагувати суму"
+                  disabled={pending}
+                  onClick={() => {
+                    reset({ amount: work.amount, description: work.description });
+                    setEditingDescription(false);
+                    setEditingAmount(true);
+                  }}
+                >
+                  ✎
+                </button>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <input className={styles.amountInput} type="number" min={0} step="0.01" {...register("amount")} />
+              <Button type="button" disabled={pending} onClick={() => void handleAmountSave()}>
+                Оновити
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={pending}
+                onClick={() => {
+                  reset({ amount: work.amount, description: work.description });
+                  setEditingAmount(false);
+                }}
+              >
+                Скасувати
+              </Button>
+            </>
+          )}
+        </div>
+        {!amountLocked && errors.amount ? <small className={styles.error}>{errors.amount.message}</small> : null}
       </div>
-      {errors.amount ? <small className={styles.error}>{errors.amount.message}</small> : null}
-    </form>
+    </div>
   );
 }
