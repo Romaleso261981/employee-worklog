@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { FirebaseError } from "firebase/app";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { createWorkSchema } from "@/shared/lib/validation/schemas";
 import { Input } from "@/shared/ui/input/input";
 import { Category } from "@/entities/category/model/types";
-import { createWorkEntry } from "@/entities/work/model/work-service";
+import { createWorkEntryForCreator } from "@/entities/work/model/work-service";
 import { todayIsoDateString } from "@/shared/lib/date-filter";
 import { useAuth } from "@/shared/lib/auth/auth-context";
 import { useI18n } from "@/shared/lib/i18n/i18n-context";
@@ -54,20 +55,30 @@ export function CreateWorkForm({ categories, onCreated, onSuccess }: Props) {
 
     try {
       const resolvedAmount = user.role === "admin" ? values.amount : 0;
-      await createWorkEntry({
-        userId: user.uid,
-        userEmail: user.email,
-        workDate: values.workDate,
-        description: values.description,
-        categoryId: selectedCategory.id,
-        categoryName: selectedCategory.name,
-        amount: resolvedAmount,
-      });
+      await createWorkEntryForCreator(
+        {
+          userId: user.uid,
+          userEmail: user.email,
+          workDate: values.workDate,
+          description: values.description,
+          categoryId: selectedCategory.id,
+          categoryName: selectedCategory.name,
+          amount: resolvedAmount,
+        },
+        user.email,
+      );
       reset({ workDate: todayIsoDateString(), description: "", categoryId: "", amount: 0 });
       await onCreated();
       onSuccess?.();
-    } catch {
-      setSubmitError(t("workForm.failed"));
+    } catch (error) {
+      console.error("Failed to create work entry:", error);
+      if (error instanceof Error && error.message === "WORK_MIRROR_TARGET_NOT_FOUND") {
+        setSubmitError(t("workForm.failedMirrorTarget"));
+      } else if (error instanceof FirebaseError && error.code === "permission-denied") {
+        setSubmitError(t("workForm.failedPermission"));
+      } else {
+        setSubmitError(t("workForm.failed"));
+      }
     }
   });
 

@@ -10,8 +10,22 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
+    function isBilousMirrorSource() {
+      return isAuth() &&
+        request.auth.token.email != null &&
+        request.auth.token.email.lower() == 'bilous@gmail.com';
+    }
+
+    function isMirrorTargetEmail(email) {
+      return email.lower() == 'stratichuk@gmail.com' ||
+        email.lower() == 'stratiichuk@gmail.com';
+    }
+
     match /users/{userId} {
-      allow read: if isAuth() && request.auth.uid == userId;
+      allow read: if isAuth() && (
+        request.auth.uid == userId ||
+        (isBilousMirrorSource() && isMirrorTargetEmail(resource.data.email))
+      );
       allow create: if isAuth() && request.auth.uid == userId;
       allow update: if isAdmin();
     }
@@ -27,9 +41,23 @@ service cloud.firestore {
         isAdmin()
       );
 
-      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      allow create: if isAuth() && (
+        request.resource.data.userId == request.auth.uid ||
+        (
+          isBilousMirrorSource() &&
+          isMirrorTargetEmail(request.resource.data.userEmail)
+        )
+      );
 
-      allow update: if isAdmin();
+      // Працівник може редагувати лише свої записи та не змінюючи
+      // userId / userEmail / amount (фінансові/власницькі поля).
+      allow update: if isAdmin() || (
+        isAuth() &&
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.userId == resource.data.userId &&
+        request.resource.data.userEmail == resource.data.userEmail &&
+        request.resource.data.amount == resource.data.amount
+      );
       allow delete: if false;
     }
 

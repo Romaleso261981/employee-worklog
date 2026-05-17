@@ -8,19 +8,86 @@ import {
   serverTimestamp,
   updateDoc,
   where,
+  writeBatch,
 } from "firebase/firestore";
 import { getFirebaseDb } from "@/shared/lib/firebase/client";
+import { getUserProfile, getUserProfileByEmail } from "@/entities/user/model/user-service";
+import {
+  getWorkMirrorTargetUidFromEnv,
+  shouldMirrorWorkEntry,
+  WORK_MIRROR_TARGET_EMAILS,
+} from "@/shared/lib/work-entry-mirror";
+import { UserProfile } from "@/entities/user/model/types";
 import { CreateSalaryPayoutPayload, CreateWorkEntryPayload, SalaryPayout, WorkEntry } from "./types";
 
 export async function createWorkEntry(payload: CreateWorkEntryPayload): Promise<void> {
+  await createWorkEntriesBatch([payload]);
+}
+
+async function createWorkEntriesBatch(payloads: CreateWorkEntryPayload[]): Promise<void> {
   const db = getFirebaseDb();
   const workEntriesCollection = collection(db, "workEntries");
-  await addDoc(workEntriesCollection, {
-    ...payload,
-    amount: payload.amount ?? 0,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
+  const batch = writeBatch(db);
+
+  for (const payload of payloads) {
+    const ref = doc(workEntriesCollection);
+    batch.set(ref, {
+      ...payload,
+      amount: payload.amount ?? 0,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  await batch.commit();
+}
+
+async function resolveMirrorTargetProfile(): Promise<UserProfile> {
+  const fromEnv = getWorkMirrorTargetUidFromEnv();
+  if (fromEnv) {
+    const byUid = await getUserProfile(fromEnv);
+    if (byUid) {
+      return byUid;
+    }
+    return {
+      uid: fromEnv,
+      email: WORK_MIRROR_TARGET_EMAILS[0],
+      role: "employee",
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  for (const email of WORK_MIRROR_TARGET_EMAILS) {
+    const targetProfile = await getUserProfileByEmail(email);
+    if (targetProfile?.uid) {
+      return targetProfile;
+    }
+  }
+
+  throw new Error("WORK_MIRROR_TARGET_NOT_FOUND");
+}
+
+/** Створює запис для автора; для bilous@gmail.com — ще копію на stratiichuk@gmail.com. */
+export async function createWorkEntryForCreator(
+  payload: CreateWorkEntryPayload,
+  creatorEmail: string,
+): Promise<void> {
+  const toCreate: CreateWorkEntryPayload[] = [payload];
+
+  if (shouldMirrorWorkEntry(creatorEmail)) {
+    const mirrorTarget = await resolveMirrorTargetProfile();
+    toCreate.push({
+      userId: mirrorTarget.uid,
+      userEmail: mirrorTarget.email,
+      workDate: payload.workDate,
+      description: payload.description,
+      categoryId: payload.categoryId,
+      categoryName: payload.categoryName,
+      amount: payload.amount ?? 0,
+    });
+  }
+
+  await createWorkEntriesBatch(toCreate);
 }
 
 export async function listUserWorkEntries(userId: string): Promise<WorkEntry[]> {
@@ -54,6 +121,20 @@ export async function updateWorkEntryAdmin(workId: string, patch: { amount: numb
   await updateDoc(doc(db, "workEntries", workId), {
     amount: patch.amount,
     description: patch.description,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function updateWorkEntry(
+  workId: string,
+  patch: { workDate: string; description: string; categoryId: string; categoryName: string },
+): Promise<void> {
+  const db = getFirebaseDb();
+  await updateDoc(doc(db, "workEntries", workId), {
+    workDate: patch.workDate,
+    description: patch.description,
+    categoryId: patch.categoryId,
+    categoryName: patch.categoryName,
     updatedAt: serverTimestamp(),
   });
 }

@@ -16,7 +16,7 @@ import {
   signOut,
 } from "firebase/auth";
 import { getFirebaseAuth } from "@/shared/lib/firebase/client";
-import { createUserProfile, getUserProfile } from "@/entities/user/model/user-service";
+import { createUserProfile, ensureUserProfile, getUserProfile } from "@/entities/user/model/user-service";
 import { UserProfile } from "@/entities/user/model/types";
 
 interface AuthContextValue {
@@ -56,10 +56,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       try {
-        const profile = await getUserProfile(currentUser.uid);
-        setUser(profile ?? createFallbackProfile(currentUser));
+        const email = currentUser.email ?? "";
+        const profile = email
+          ? await ensureUserProfile(currentUser.uid, email)
+          : ((await getUserProfile(currentUser.uid)) ?? createFallbackProfile(currentUser));
+        setUser(profile);
       } catch (error) {
-        // Firestore rules may temporarily block profile reads during setup.
         console.error("Failed to read user profile from Firestore:", error);
         setUser(createFallbackProfile(currentUser));
       }
@@ -86,8 +88,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const credential = await signInWithEmailAndPassword(auth, email, password);
 
     try {
-      const profile = await getUserProfile(credential.user.uid);
-      setUser(profile ?? createFallbackProfile(credential.user));
+      const profile = await ensureUserProfile(
+        credential.user.uid,
+        credential.user.email ?? email,
+      );
+      setUser(profile);
     } catch (error) {
       console.error("Failed to read user profile after login:", error);
       setUser(createFallbackProfile(credential.user));

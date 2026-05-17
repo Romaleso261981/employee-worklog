@@ -7,6 +7,7 @@ import { Category } from "@/entities/category/model/types";
 import { listAllSalaryPayouts, listAllWorkEntries, listUserSalaryPayouts, listUserWorkEntries } from "@/entities/work/model/work-service";
 import { SalaryPayout, WorkEntry } from "@/entities/work/model/types";
 import { CreateWorkForm } from "@/features/work-entry/ui/create-work-form";
+import { WorkDetailsModal } from "@/features/work-entry/ui/work-details-modal";
 import { AdminTools } from "@/features/admin/ui/admin-tools";
 import { useAuth } from "@/shared/lib/auth/auth-context";
 import { useI18n } from "@/shared/lib/i18n/i18n-context";
@@ -164,6 +165,7 @@ export function DashboardPage() {
   });
   const [worksFilterModalOpen, setWorksFilterModalOpen] = useState(false);
   const [payoutFilterModalOpen, setPayoutFilterModalOpen] = useState(false);
+  const [selectedWorkId, setSelectedWorkId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     if (!user) {
@@ -306,7 +308,16 @@ export function DashboardPage() {
     {
       key: "description",
       title: t("dashboard.descriptionLabel"),
-      render: (row) => row.description,
+      render: (row) => (
+        <button
+          type="button"
+          className={styles.descriptionCellButton}
+          onClick={() => setSelectedWorkId(row.id)}
+          title={t("workDetails.openTooltip")}
+        >
+          {row.description}
+        </button>
+      ),
     },
     {
       key: "category",
@@ -1043,6 +1054,14 @@ export function DashboardPage() {
           }}
         />
       </Modal>
+
+      <WorkDetailsModal
+        isOpen={selectedWorkId !== null}
+        work={works.find((w) => w.id === selectedWorkId) ?? null}
+        categories={categories}
+        onClose={() => setSelectedWorkId(null)}
+        onUpdated={loadData}
+      />
     </main>
   );
 }

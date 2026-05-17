@@ -95,6 +95,20 @@ export const translations = {
       saveWork: "Зберегти роботу",
       categoryMissing: "Категорію не знайдено",
       failed: "Не вдалося додати роботу",
+      failedMirrorTarget:
+        "Не знайдено профіль stratichuk / stratiichuk у Firestore. Нехай цільовий працівник один раз увійде в додаток, або вкажіть NEXT_PUBLIC_WORK_MIRROR_TARGET_UID у .env.local (UID з Firebase Authentication).",
+      failedPermission:
+        "Доступ заборонено. Опублікуйте оновлені правила Firestore (firestore.rules) у Firebase Console.",
+    },
+    workDetails: {
+      title: "Деталі запису",
+      editTitle: "Редагування запису",
+      edit: "Редагувати",
+      save: "Зберегти",
+      cancel: "Скасувати",
+      updated: "Запис оновлено",
+      updateFailed: "Не вдалося оновити запис",
+      openTooltip: "Відкрити деталі запису",
     },
   },
   en: {
@@ -191,6 +205,20 @@ export const translations = {
       saveWork: "Save work",
       categoryMissing: "Category not found",
       failed: "Failed to create work entry",
+      failedMirrorTarget:
+        "Profile for stratiichuk@gmail.com not found. They must sign in once, or set NEXT_PUBLIC_WORK_MIRROR_TARGET_UID in .env.local",
+      failedPermission:
+        "Permission denied. Publish updated Firestore rules (firestore.rules) in Firebase Console.",
+    },
+    workDetails: {
+      title: "Entry details",
+      editTitle: "Edit entry",
+      edit: "Edit",
+      save: "Save",
+      cancel: "Cancel",
+      updated: "Entry updated",
+      updateFailed: "Failed to update entry",
+      openTooltip: "Open entry details",
     },
   },
 } as const;
@@ -281,4 +309,14 @@ export type TranslationPath =
   | "workForm.selectCategory"
   | "workForm.saveWork"
   | "workForm.categoryMissing"
-  | "workForm.failed";
+  | "workForm.failed"
+  | "workForm.failedMirrorTarget"
+  | "workForm.failedPermission"
+  | "workDetails.title"
+  | "workDetails.editTitle"
+  | "workDetails.edit"
+  | "workDetails.save"
+  | "workDetails.cancel"
+  | "workDetails.updated"
+  | "workDetails.updateFailed"
+  | "workDetails.openTooltip";
