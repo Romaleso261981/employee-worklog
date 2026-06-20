@@ -1,5 +1,5 @@
 .wrapper { overflow: auto; }
-.table { width: 100%; border-collapse: collapse; min-width: 640px; }
+.table { width: 100%; border-collapse: collapse; min-width: 720px; }
 .table th,
 .table td { text-align: left; border-bottom: 1px solid var(--border); padding: 10px; }
 .table th { color: var(--muted); font-size: 13px; }

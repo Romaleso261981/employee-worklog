@@ -16,6 +16,50 @@
   gap: 12px;
 }
 
+.adminWorkerScope {
+  background: var(--surface);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: grid;
+  gap: 8px;
+  box-shadow: 0 6px 20px rgba(16, 31, 61, 0.08);
+  border: 1px solid rgba(49, 88, 245, 0.25);
+}
+
+.adminWorkerScopeField {
+  display: grid;
+  gap: 6px;
+  max-width: min(480px, 100%);
+}
+
+.adminWorkerScopeField .select {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 48px;
+  padding: 12px 2.75rem 12px 14px;
+  font-size: 15px;
+  line-height: 1.35;
+  appearance: none;
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23334155' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 16px 16px;
+}
+
+.adminWorkerScopeLabel {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.adminWorkerScopeHint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
 /* Співробітник: три вкладки (головна / роботи / витрати), зручно на мобільному */
 .employeeTabBar {
   position: sticky;
@@ -466,6 +510,12 @@
 .descriptionCellButton:focus-visible {
   outline: 2px solid var(--primary, #3158f5);
   outline-offset: -2px;
+}
+
+.workerCell {
+  font-size: 13px;
+  color: var(--muted);
+  word-break: break-word;
 }
 
 /* Підсумок суми: одразу під фільтрами, над таблицею */

@@ -19,9 +19,11 @@ interface Props {
   adminUid: string;
   works: WorkEntry[];
   onDataChanged: () => Promise<void>;
+  /** Якщо задано — фільтр працівника керується з дашборду, локальний селект ховається */
+  scopeWorkerEmail?: string;
 }
 
-export function AdminTools({ adminUid, works, onDataChanged }: Props) {
+export function AdminTools({ adminUid, works, onDataChanged, scopeWorkerEmail }: Props) {
   const [categoryError, setCategoryError] = useState<string | null>(null);
   const [salaryError, setSalaryError] = useState<string | null>(null);
   const [salaryLoading, setSalaryLoading] = useState(true);
@@ -105,6 +107,12 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
       a.localeCompare(b),
     );
   }, [works, salaryPayouts]);
+
+  useEffect(() => {
+    if (scopeWorkerEmail !== undefined) {
+      setSelectedEmail(scopeWorkerEmail);
+    }
+  }, [scopeWorkerEmail]);
 
   useEffect(() => {
     if (selectedEmail) {
@@ -527,22 +535,24 @@ export function AdminTools({ adminUid, works, onDataChanged }: Props) {
 
       <div className={styles.form}>
         <h2>Адмін: Редагування суми</h2>
-        <div className={styles.filterGroup}>
-          <label htmlFor="worker-email-filter">Працівник</label>
-          <select
-            id="worker-email-filter"
-            className={styles.select}
-            value={selectedEmail}
-            onChange={(event) => setSelectedEmail(event.target.value)}
-          >
-            <option value="">Усі працівники</option>
-            {workerEmails.map((email) => (
-              <option key={email} value={email}>
-                {email}
-              </option>
-            ))}
-          </select>
-        </div>
+        {scopeWorkerEmail === undefined ? (
+          <div className={styles.filterGroup}>
+            <label htmlFor="worker-email-filter">Працівник</label>
+            <select
+              id="worker-email-filter"
+              className={styles.select}
+              value={selectedEmail}
+              onChange={(event) => setSelectedEmail(event.target.value)}
+            >
+              <option value="">Усі працівники</option>
+              {workerEmails.map((email) => (
+                <option key={email} value={email}>
+                  {email}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
 
         <div className={styles.summaryGrid}>
           <div className={styles.summaryCard}>

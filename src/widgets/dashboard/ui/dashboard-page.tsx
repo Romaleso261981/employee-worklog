@@ -166,6 +166,7 @@ export function DashboardPage() {
   const [worksFilterModalOpen, setWorksFilterModalOpen] = useState(false);
   const [payoutFilterModalOpen, setPayoutFilterModalOpen] = useState(false);
   const [selectedWorkId, setSelectedWorkId] = useState<string | null>(null);
+  const [adminSelectedWorker, setAdminSelectedWorker] = useState("");
 
   const loadData = useCallback(async () => {
     if (!user) {
@@ -210,17 +211,39 @@ export function DashboardPage() {
     }
   }, [loadData, loading, router, user]);
 
-  const workerEmails = useMemo(() => {
-    return [...new Set(works.map((item) => item.userEmail))].sort((a, b) => a.localeCompare(b));
-  }, [works]);
-  const payoutWorkerEmails = useMemo(() => {
-    return [...new Set(salaryPayouts.map((item) => item.userEmail))].sort((a, b) => a.localeCompare(b));
-  }, [salaryPayouts]);
+  const allWorkerEmails = useMemo(() => {
+    return [...new Set([...works.map((item) => item.userEmail), ...salaryPayouts.map((item) => item.userEmail)])].sort(
+      (a, b) => a.localeCompare(b),
+    );
+  }, [works, salaryPayouts]);
+
+  const adminScopedWorks = useMemo(() => {
+    if (!adminSelectedWorker) {
+      return works;
+    }
+    return works.filter((item) => item.userEmail === adminSelectedWorker);
+  }, [adminSelectedWorker, works]);
+
+  const adminScopedPayouts = useMemo(() => {
+    if (!adminSelectedWorker) {
+      return salaryPayouts;
+    }
+    return salaryPayouts.filter((item) => item.userEmail === adminSelectedWorker);
+  }, [adminSelectedWorker, salaryPayouts]);
+
+  const worksForView = user?.role === "admin" ? adminScopedWorks : works;
+  const payoutsForView = user?.role === "admin" ? adminScopedPayouts : salaryPayouts;
+
+  useEffect(() => {
+    setPage(1);
+    setPayoutPage(1);
+  }, [adminSelectedWorker]);
 
   const filteredWorks = useMemo(() => {
-    return works.filter((item) => {
+    return worksForView.filter((item) => {
       const matchesCategory = categoryFilter ? item.categoryId === categoryFilter : true;
-      const matchesWorker = workerFilter ? item.userEmail === workerFilter : true;
+      const matchesWorker =
+        user?.role === "admin" ? true : workerFilter ? item.userEmail === workerFilter : true;
       const matchesDate = matchesDateString(
         item.workDate,
         dateFilterPreset,
@@ -233,7 +256,8 @@ export function DashboardPage() {
       return matchesCategory && matchesWorker && matchesDate;
     });
   }, [
-    works,
+    worksForView,
+    user?.role,
     categoryFilter,
     workerFilter,
     dateFilterPreset,
@@ -252,7 +276,7 @@ export function DashboardPage() {
     if (categoryFilter) {
       n += 1;
     }
-    if (workerFilter) {
+    if (workerFilter && user?.role !== "admin") {
       n += 1;
     }
     if (dateFilterPreset !== "all") {
@@ -299,46 +323,62 @@ export function DashboardPage() {
     return sortedWorks.slice(from, from + PAGE_SIZE);
   }, [sortedWorks, page]);
 
-  const columns: TableColumn<WorkEntry>[] = [
-    {
-      key: "date",
-      title: t("dashboard.dateLabel"),
-      render: (row) => row.workDate,
-    },
-    {
-      key: "description",
-      title: t("dashboard.descriptionLabel"),
-      render: (row) => (
-        <button
-          type="button"
-          className={styles.descriptionCellButton}
-          onClick={() => setSelectedWorkId(row.id)}
-          title={t("workDetails.openTooltip")}
-        >
-          {row.description}
-        </button>
-      ),
-    },
-    {
-      key: "category",
-      title: t("dashboard.categoryLabel"),
-      render: (row) => row.categoryName,
-    },
-    {
-      key: "amount",
-      title: t("dashboard.amountLabel"),
-      render: (row) => row.amount.toFixed(2),
-    },
-  ];
+  const columns: TableColumn<WorkEntry>[] = useMemo(() => {
+    const base: TableColumn<WorkEntry>[] = [
+      {
+        key: "date",
+        title: t("dashboard.dateLabel"),
+        render: (row) => row.workDate,
+      },
+    ];
+
+    if (user?.role === "admin") {
+      base.push({
+        key: "worker",
+        title: t("dashboard.workerFilterLabel"),
+        render: (row) => <span className={styles.workerCell}>{row.userEmail}</span>,
+      });
+    }
+
+    base.push(
+      {
+        key: "description",
+        title: t("dashboard.descriptionLabel"),
+        render: (row) => (
+          <button
+            type="button"
+            className={styles.descriptionCellButton}
+            onClick={() => setSelectedWorkId(row.id)}
+            title={t("workDetails.openTooltip")}
+          >
+            {row.description}
+          </button>
+        ),
+      },
+      {
+        key: "category",
+        title: t("dashboard.categoryLabel"),
+        render: (row) => row.categoryName,
+      },
+      {
+        key: "amount",
+        title: t("dashboard.amountLabel"),
+        render: (row) => row.amount.toFixed(2),
+      },
+    );
+
+    return base;
+  }, [t, user?.role]);
 
   const filteredPayoutsAdmin = useMemo(() => {
-    return salaryPayouts.filter((item) => {
+    return payoutsForView.filter((item) => {
       const search = payoutSearchTerm.toLowerCase();
       const matchesSearch =
         item.description.toLowerCase().includes(search) ||
         item.payoutDate.includes(payoutSearchTerm) ||
         item.userEmail.toLowerCase().includes(search);
-      const matchesWorker = payoutWorkerFilter ? item.userEmail === payoutWorkerFilter : true;
+      const matchesWorker =
+        user?.role === "admin" ? true : payoutWorkerFilter ? item.userEmail === payoutWorkerFilter : true;
       const matchesDate = matchesDateString(
         item.payoutDate,
         payoutDateFilterPreset,
@@ -350,7 +390,8 @@ export function DashboardPage() {
       return matchesSearch && matchesWorker && matchesDate;
     });
   }, [
-    salaryPayouts,
+    payoutsForView,
+    user?.role,
     payoutSearchTerm,
     payoutWorkerFilter,
     payoutDateFilterPreset,
@@ -392,7 +433,7 @@ export function DashboardPage() {
     if (payoutSearchTerm.trim()) {
       n += 1;
     }
-    if (payoutWorkerFilter) {
+    if (payoutWorkerFilter && user?.role !== "admin") {
       n += 1;
     }
     if (payoutDateFilterPreset !== "all") {
@@ -445,37 +486,43 @@ export function DashboardPage() {
   /** Нараховано / виплачено / залишок за обраний календарний місяць (workDate / payoutDate = YYYY-MM-DD). */
   const monthlyFinance = useMemo(() => {
     const prefix = financeMonth;
-    const earned = works.reduce((acc, work) => {
+    const worksSource = user?.role === "admin" ? adminScopedWorks : works;
+    const payoutsSource = user?.role === "admin" ? adminScopedPayouts : salaryPayouts;
+    const earned = worksSource.reduce((acc, work) => {
       return work.workDate.startsWith(prefix) ? acc + work.amount : acc;
     }, 0);
-    const paid = salaryPayouts.reduce((acc, payout) => {
+    const paid = payoutsSource.reduce((acc, payout) => {
       return payout.payoutDate.startsWith(prefix) ? acc + payout.amount : acc;
     }, 0);
     return { earned, paid, balance: earned - paid };
-  }, [financeMonth, salaryPayouts, works]);
+  }, [adminScopedPayouts, adminScopedWorks, financeMonth, salaryPayouts, user?.role, works]);
 
   /** Усі дані в обліку (від початку користування / реєстрації в системі). */
   const allTimeFinance = useMemo(() => {
-    const earned = works.reduce((acc, work) => acc + work.amount, 0);
-    const paid = salaryPayouts.reduce((acc, payout) => acc + payout.amount, 0);
+    const worksSource = user?.role === "admin" ? adminScopedWorks : works;
+    const payoutsSource = user?.role === "admin" ? adminScopedPayouts : salaryPayouts;
+    const earned = worksSource.reduce((acc, work) => acc + work.amount, 0);
+    const paid = payoutsSource.reduce((acc, payout) => acc + payout.amount, 0);
     return { earned, paid, balance: earned - paid };
-  }, [salaryPayouts, works]);
+  }, [adminScopedPayouts, adminScopedWorks, salaryPayouts, user?.role, works]);
 
   /** Скільки різних календарних місяців мають хоча б одну роботу або виплату. */
   const monthsOnRecord = useMemo(() => {
+    const worksSource = user?.role === "admin" ? adminScopedWorks : works;
+    const payoutsSource = user?.role === "admin" ? adminScopedPayouts : salaryPayouts;
     const months = new Set<string>();
-    works.forEach((w) => {
+    worksSource.forEach((w) => {
       if (w.workDate.length >= 7) {
         months.add(w.workDate.slice(0, 7));
       }
     });
-    salaryPayouts.forEach((p) => {
+    payoutsSource.forEach((p) => {
       if (p.payoutDate.length >= 7) {
         months.add(p.payoutDate.slice(0, 7));
       }
     });
     return months.size;
-  }, [salaryPayouts, works]);
+  }, [adminScopedPayouts, adminScopedWorks, salaryPayouts, user?.role, works]);
 
   if (loading || !user) {
     return <CenteredLoader label={t("common.loadingProfile")} />;
@@ -504,6 +551,27 @@ export function DashboardPage() {
           </button>
         </div>
       </header>
+
+      {user.role === "admin" ? (
+        <section className={styles.adminWorkerScope} aria-label={t("dashboard.adminScopeWorkerLabel")}>
+          <label className={styles.adminWorkerScopeField}>
+            <span className={styles.adminWorkerScopeLabel}>{t("dashboard.adminScopeWorkerLabel")}</span>
+            <select
+              className={styles.select}
+              value={adminSelectedWorker}
+              onChange={(event) => setAdminSelectedWorker(event.target.value)}
+            >
+              <option value="">{t("dashboard.allWorkers")}</option>
+              {allWorkerEmails.map((email) => (
+                <option key={email} value={email}>
+                  {email}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className={styles.adminWorkerScopeHint}>{t("dashboard.adminScopeWorkerHint")}</p>
+        </section>
+      ) : null}
 
       {user.role === "admin" ? (
         <DashboardFinanceBanner
@@ -650,26 +718,6 @@ export function DashboardPage() {
                   ))}
                 </select>
               </label>
-              {user.role === "admin" ? (
-                <label className={styles.worksFilterField}>
-                  <span>{t("dashboard.workerFilterLabel")}</span>
-                  <select
-                    className={styles.select}
-                    value={workerFilter}
-                    onChange={(event) => {
-                      setWorkerFilter(event.target.value);
-                      setPage(1);
-                    }}
-                  >
-                    <option value="">{t("dashboard.allWorkers")}</option>
-                    {workerEmails.map((email) => (
-                      <option key={email} value={email}>
-                        {email}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ) : null}
               <label className={styles.worksFilterField}>
                 <span>{t("dashboard.dateFilterMode")}</span>
                 <select
@@ -864,26 +912,6 @@ export function DashboardPage() {
                     placeholder={t("common.search")}
                   />
                 </label>
-                {user.role === "admin" ? (
-                  <label className={styles.worksFilterField}>
-                    <span>{t("dashboard.workerFilterLabel")}</span>
-                    <select
-                      className={styles.select}
-                      value={payoutWorkerFilter}
-                      onChange={(event) => {
-                        setPayoutWorkerFilter(event.target.value);
-                        setPayoutPage(1);
-                      }}
-                    >
-                      <option value="">{t("dashboard.allWorkers")}</option>
-                      {payoutWorkerEmails.map((email) => (
-                        <option key={email} value={email}>
-                          {email}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ) : null}
                 <label className={styles.worksFilterField}>
                   <span>{t("dashboard.dateFilterMode")}</span>
                   <select
@@ -1042,7 +1070,14 @@ export function DashboardPage() {
         </section>
       ) : null}
 
-      {user.role === "admin" && adminView === "admin" ? <AdminTools adminUid={user.uid} works={works} onDataChanged={loadData} /> : null}
+      {user.role === "admin" && adminView === "admin" ? (
+        <AdminTools
+          adminUid={user.uid}
+          works={works}
+          scopeWorkerEmail={adminSelectedWorker}
+          onDataChanged={loadData}
+        />
+      ) : null}
 
       <Modal isOpen={isCreateModalOpen} title={t("dashboard.addWork")} onClose={() => setCreateModalOpen(false)}>
         <CreateWorkForm
