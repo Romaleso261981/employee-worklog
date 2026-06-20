@@ -111,6 +111,13 @@ export const translations = {
       updated: "Запис оновлено",
       updateFailed: "Не вдалося оновити запис",
       openTooltip: "Відкрити деталі запису",
+      delete: "Видалити",
+      deleteConfirm: "Видалити цей запис? Дію не можна скасувати.",
+      deleteConfirmAction: "Так, видалити",
+      deleted: "Запис видалено",
+      deleteFailed: "Не вдалося видалити запис",
+      deleteFailedPermission:
+        "Немає прав на видалення. Опублікуйте firestore.rules у Firebase Console (Firestore → Rules → Publish). Для адміна в users/{uid} має бути role: admin.",
     },
   },
   en: {
@@ -223,6 +230,13 @@ export const translations = {
       updated: "Entry updated",
       updateFailed: "Failed to update entry",
       openTooltip: "Open entry details",
+      delete: "Delete",
+      deleteConfirm: "Delete this entry? This cannot be undone.",
+      deleteConfirmAction: "Yes, delete",
+      deleted: "Entry deleted",
+      deleteFailed: "Failed to delete entry",
+      deleteFailedPermission:
+        "Permission denied. Publish firestore.rules in Firebase Console (Firestore → Rules → Publish). Admins need role: admin in users/{uid}.",
     },
   },
 } as const;
@@ -325,4 +339,10 @@ export type TranslationPath =
   | "workDetails.cancel"
   | "workDetails.updated"
   | "workDetails.updateFailed"
-  | "workDetails.openTooltip";
+  | "workDetails.openTooltip"
+  | "workDetails.delete"
+  | "workDetails.deleteConfirm"
+  | "workDetails.deleteConfirmAction"
+  | "workDetails.deleted"
+  | "workDetails.deleteFailed"
+  | "workDetails.deleteFailedPermission";

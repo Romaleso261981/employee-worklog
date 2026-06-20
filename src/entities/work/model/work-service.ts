@@ -1,6 +1,7 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDocs,
   orderBy,
@@ -137,6 +138,11 @@ export async function updateWorkEntry(
     categoryName: patch.categoryName,
     updatedAt: serverTimestamp(),
   });
+}
+
+export async function deleteWorkEntry(workId: string): Promise<void> {
+  const db = getFirebaseDb();
+  await deleteDoc(doc(db, "workEntries", workId));
 }
 
 export async function createSalaryPayout(payload: CreateSalaryPayoutPayload): Promise<void> {

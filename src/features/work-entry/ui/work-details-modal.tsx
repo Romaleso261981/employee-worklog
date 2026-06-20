@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { FirebaseError } from "firebase/app";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Category } from "@/entities/category/model/types";
 import { WorkEntry } from "@/entities/work/model/types";
-import { updateWorkEntry } from "@/entities/work/model/work-service";
+import { deleteWorkEntry, updateWorkEntry } from "@/entities/work/model/work-service";
 import { useAuth } from "@/shared/lib/auth/auth-context";
 import { useI18n } from "@/shared/lib/i18n/i18n-context";
 import { createWorkSchema } from "@/shared/lib/validation/schemas";
@@ -32,8 +33,10 @@ export function WorkDetailsModal({ work, isOpen, categories, onClose, onUpdated 
   const { showToast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const canEdit = Boolean(
+  const canManage = Boolean(
     work &&
       user &&
       (user.role === "admin" || user.uid === work.userId),
@@ -65,12 +68,38 @@ export function WorkDetailsModal({ work, isOpen, categories, onClose, onUpdated 
     }
     setIsEditing(false);
     setSubmitError(null);
+    setConfirmDelete(false);
   }, [reset, work]);
 
   const handleClose = () => {
     setIsEditing(false);
     setSubmitError(null);
+    setConfirmDelete(false);
     onClose();
+  };
+
+  const handleDelete = async () => {
+    if (!work) {
+      return;
+    }
+    setSubmitError(null);
+    setIsDeleting(true);
+    try {
+      await deleteWorkEntry(work.id);
+      await onUpdated();
+      showToast(t("workDetails.deleted"));
+      handleClose();
+    } catch (error) {
+      console.error("Failed to delete work entry:", error);
+      if (error instanceof FirebaseError && error.code === "permission-denied") {
+        setSubmitError(t("workDetails.deleteFailedPermission"));
+      } else {
+        setSubmitError(t("workDetails.deleteFailed"));
+      }
+    } finally {
+      setIsDeleting(false);
+      setConfirmDelete(false);
+    }
   };
 
   const onSubmit = handleSubmit(async (values) => {
@@ -124,23 +153,70 @@ export function WorkDetailsModal({ work, isOpen, categories, onClose, onUpdated 
           </div>
           {user?.role === "admin" ? (
             <div className={styles.field}>
+              <span className={styles.label}>{t("dashboard.workerFilterLabel")}</span>
+              <span className={styles.value}>{work.userEmail}</span>
+            </div>
+          ) : null}
+          {user?.role === "admin" ? (
+            <div className={styles.field}>
               <span className={styles.label}>{t("dashboard.amountLabel")}</span>
               <span className={styles.value}>{work.amount.toFixed(2)}</span>
             </div>
           ) : null}
+          {confirmDelete ? (
+            <p className={styles.confirmDeleteText}>{t("workDetails.deleteConfirm")}</p>
+          ) : null}
+          {submitError ? <p className={styles.error}>{submitError}</p> : null}
           <div className={styles.footer}>
-            <button type="button" className={styles.secondaryButton} onClick={handleClose}>
-              {t("common.close")}
-            </button>
-            {canEdit ? (
-              <button
-                type="button"
-                className={styles.primaryButton}
-                onClick={() => setIsEditing(true)}
-              >
-                {t("workDetails.edit")}
+            {canManage ? (
+              <div className={styles.footerStart}>
+                {!confirmDelete ? (
+                  <button
+                    type="button"
+                    className={styles.dangerButton}
+                    disabled={isDeleting}
+                    onClick={() => setConfirmDelete(true)}
+                  >
+                    {t("workDetails.delete")}
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      className={styles.dangerButton}
+                      disabled={isDeleting}
+                      onClick={() => void handleDelete()}
+                    >
+                      {t("workDetails.deleteConfirmAction")}
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.secondaryButton}
+                      disabled={isDeleting}
+                      onClick={() => setConfirmDelete(false)}
+                    >
+                      {t("workDetails.cancel")}
+                    </button>
+                  </>
+                )}
+              </div>
+            ) : (
+              <span />
+            )}
+            <div className={styles.footerEnd}>
+              <button type="button" className={styles.secondaryButton} onClick={handleClose}>
+                {t("common.close")}
               </button>
-            ) : null}
+              {canManage && !confirmDelete ? (
+                <button
+                  type="button"
+                  className={styles.primaryButton}
+                  onClick={() => setIsEditing(true)}
+                >
+                  {t("workDetails.edit")}
+                </button>
+              ) : null}
+            </div>
           </div>
         </div>
       ) : (

@@ -7,6 +7,7 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuth() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
@@ -58,7 +59,9 @@ service cloud.firestore {
         request.resource.data.userEmail == resource.data.userEmail &&
         request.resource.data.amount == resource.data.amount
       );
-      allow delete: if false;
+      allow delete: if isAdmin() || (
+        isAuth() && resource.data.userId == request.auth.uid
+      );
     }
 
     match /salaryPayouts/{payoutId} {

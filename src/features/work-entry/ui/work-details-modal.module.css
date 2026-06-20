@@ -65,10 +65,53 @@
 
 .footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   gap: 8px;
   margin-top: 6px;
   flex-wrap: wrap;
+}
+
+.footerStart,
+.footerEnd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.footerEnd {
+  margin-left: auto;
+}
+
+.confirmDeleteText {
+  margin: 0;
+  font-size: 14px;
+  color: var(--danger, #b91c1c);
+  line-height: 1.4;
+}
+
+.dangerButton {
+  margin: 0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+  border: 1px solid #b91c1c;
+  background: #fff;
+  color: #b91c1c;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dangerButton:hover:not(:disabled) {
+  background: #fef2f2;
+}
+
+.dangerButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .primaryButton,
