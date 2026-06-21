@@ -20,6 +20,22 @@ import {
 } from "@/shared/lib/work-entry-mirror";
 import { UserProfile } from "@/entities/user/model/types";
 import { CreateSalaryPayoutPayload, CreateWorkEntryPayload, SalaryPayout, WorkEntry } from "./types";
+import { normalizeWorkPaymentStatus } from "./payment-status";
+
+function mapWorkEntryDoc(id: string, data: Record<string, unknown>): WorkEntry {
+  const entry = data as Omit<WorkEntry, "id" | "paymentStatus"> & { paymentStatus?: unknown };
+  return {
+    id,
+    userId: entry.userId,
+    userEmail: entry.userEmail,
+    workDate: entry.workDate,
+    description: entry.description,
+    categoryId: entry.categoryId,
+    categoryName: entry.categoryName,
+    amount: typeof entry.amount === "number" ? entry.amount : 0,
+    paymentStatus: normalizeWorkPaymentStatus(entry.paymentStatus),
+  };
+}
 
 export async function createWorkEntry(payload: CreateWorkEntryPayload): Promise<void> {
   await createWorkEntriesBatch([payload]);
@@ -35,6 +51,7 @@ async function createWorkEntriesBatch(payloads: CreateWorkEntryPayload[]): Promi
     batch.set(ref, {
       ...payload,
       amount: payload.amount ?? 0,
+      paymentStatus: "pending",
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
@@ -97,7 +114,7 @@ export async function listUserWorkEntries(userId: string): Promise<WorkEntry[]> 
   const snapshot = await getDocs(query(workEntriesCollection, where("userId", "==", userId)));
 
   return snapshot.docs
-    .map((item) => ({ id: item.id, ...(item.data() as Omit<WorkEntry, "id">) }))
+    .map((item) => mapWorkEntryDoc(item.id, item.data() as Record<string, unknown>))
     .sort((a, b) => b.workDate.localeCompare(a.workDate));
 }
 
@@ -106,7 +123,7 @@ export async function listAllWorkEntries(): Promise<WorkEntry[]> {
   const workEntriesCollection = collection(db, "workEntries");
   const snapshot = await getDocs(query(workEntriesCollection, orderBy("workDate", "desc")));
 
-  return snapshot.docs.map((item) => ({ id: item.id, ...(item.data() as Omit<WorkEntry, "id">) }));
+  return snapshot.docs.map((item) => mapWorkEntryDoc(item.id, item.data() as Record<string, unknown>));
 }
 
 export async function updateWorkAmount(workId: string, amount: number): Promise<void> {
@@ -136,6 +153,14 @@ export async function updateWorkEntry(
     description: patch.description,
     categoryId: patch.categoryId,
     categoryName: patch.categoryName,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function updateWorkPaymentStatus(workId: string, paymentStatus: WorkEntry["paymentStatus"]): Promise<void> {
+  const db = getFirebaseDb();
+  await updateDoc(doc(db, "workEntries", workId), {
+    paymentStatus,
     updatedAt: serverTimestamp(),
   });
 }

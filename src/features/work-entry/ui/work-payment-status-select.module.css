@@ -1,0 +1,36 @@
+.wrap {
+  display: grid;
+  gap: 6px;
+}
+
+.compact {
+  min-width: 0;
+}
+
+.select {
+  width: 100%;
+  min-width: 9.5rem;
+  max-width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 28px 8px 10px;
+  font: inherit;
+  font-size: 13px;
+  background-color: #fff;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23334155' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 14px;
+  cursor: pointer;
+}
+
+.select:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.compact .select {
+  min-width: 8.5rem;
+}

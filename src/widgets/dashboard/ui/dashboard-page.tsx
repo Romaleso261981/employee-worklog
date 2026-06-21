@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { listCategories } from "@/entities/category/model/category-service";
 import { Category } from "@/entities/category/model/types";
 import { listAllSalaryPayouts, listAllWorkEntries, listUserSalaryPayouts, listUserWorkEntries } from "@/entities/work/model/work-service";
-import { SalaryPayout, WorkEntry } from "@/entities/work/model/types";
+import { SalaryPayout, WorkEntry, WorkPaymentStatus } from "@/entities/work/model/types";
 import { CreateWorkForm } from "@/features/work-entry/ui/create-work-form";
+import { WorkPaymentTableCell } from "@/features/work-entry/ui/work-payment-table-cell";
+import { WorkPaymentStatusBadge } from "@/features/work-entry/ui/work-payment-status-badge";
 import { WorkDetailsModal } from "@/features/work-entry/ui/work-details-modal";
 import { AdminTools } from "@/features/admin/ui/admin-tools";
 import { useAuth } from "@/shared/lib/auth/auth-context";
@@ -167,6 +169,7 @@ export function DashboardPage() {
   const [payoutFilterModalOpen, setPayoutFilterModalOpen] = useState(false);
   const [selectedWorkId, setSelectedWorkId] = useState<string | null>(null);
   const [adminSelectedWorker, setAdminSelectedWorker] = useState("");
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<"" | WorkPaymentStatus>("");
 
   const loadData = useCallback(async () => {
     if (!user) {
@@ -244,6 +247,8 @@ export function DashboardPage() {
       const matchesCategory = categoryFilter ? item.categoryId === categoryFilter : true;
       const matchesWorker =
         user?.role === "admin" ? true : workerFilter ? item.userEmail === workerFilter : true;
+      const matchesPayment =
+        user?.role === "admin" && paymentStatusFilter ? item.paymentStatus === paymentStatusFilter : true;
       const matchesDate = matchesDateString(
         item.workDate,
         dateFilterPreset,
@@ -253,13 +258,14 @@ export function DashboardPage() {
         dateRangeTo,
       );
 
-      return matchesCategory && matchesWorker && matchesDate;
+      return matchesCategory && matchesWorker && matchesDate && matchesPayment;
     });
   }, [
     worksForView,
     user?.role,
     categoryFilter,
     workerFilter,
+    paymentStatusFilter,
     dateFilterPreset,
     dateFilterYear,
     dateFilterMonth,
@@ -279,16 +285,20 @@ export function DashboardPage() {
     if (workerFilter && user?.role !== "admin") {
       n += 1;
     }
+    if (paymentStatusFilter) {
+      n += 1;
+    }
     if (dateFilterPreset !== "all") {
       n += 1;
     }
     return n;
-  }, [categoryFilter, workerFilter, dateFilterPreset]);
+  }, [categoryFilter, workerFilter, paymentStatusFilter, dateFilterPreset]);
 
   const resetWorksFilters = useCallback(() => {
     const d = new Date();
     setCategoryFilter("");
     setWorkerFilter("");
+    setPaymentStatusFilter("");
     setDateFilterPreset("all");
     setDateFilterYear(String(d.getFullYear()));
     setDateFilterMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
@@ -327,8 +337,23 @@ export function DashboardPage() {
     const base: TableColumn<WorkEntry>[] = [
       {
         key: "date",
-        title: t("dashboard.dateLabel"),
-        render: (row) => row.workDate,
+        title: (
+          <>
+            {t("dashboard.dateLabel")}
+            <span className={styles.columnTitleSub}> · {t("workPayment.columnTitle")}</span>
+          </>
+        ),
+        render: (row) => (
+          <div className={styles.datePaymentCell}>
+            <span className={styles.datePaymentDate}>{row.workDate}</span>
+            <WorkPaymentTableCell
+              workId={row.id}
+              status={row.paymentStatus}
+              canEdit={user?.role === "admin"}
+              onUpdated={loadData}
+            />
+          </div>
+        ),
       },
     ];
 
@@ -368,7 +393,7 @@ export function DashboardPage() {
     );
 
     return base;
-  }, [t, user?.role]);
+  }, [loadData, t, user?.role]);
 
   const filteredPayoutsAdmin = useMemo(() => {
     return payoutsForView.filter((item) => {
@@ -718,6 +743,24 @@ export function DashboardPage() {
                   ))}
                 </select>
               </label>
+              {user.role === "admin" ? (
+                <label className={styles.worksFilterField}>
+                  <span>{t("workPayment.filterLabel")}</span>
+                  <select
+                    className={styles.select}
+                    value={paymentStatusFilter}
+                    onChange={(event) => {
+                      setPaymentStatusFilter(event.target.value as "" | WorkPaymentStatus);
+                      setPage(1);
+                    }}
+                  >
+                    <option value="">{t("workPayment.filterAll")}</option>
+                    <option value="pending">{t("workPayment.pending")}</option>
+                    <option value="submitted">{t("workPayment.submitted")}</option>
+                    <option value="paid">{t("workPayment.paid")}</option>
+                  </select>
+                </label>
+              ) : null}
               <label className={styles.worksFilterField}>
                 <span>{t("dashboard.dateFilterMode")}</span>
                 <select
@@ -848,6 +891,14 @@ export function DashboardPage() {
         ) : null}
 
         {!dataLoading && sortedWorks.length === 0 ? <p>{t("dashboard.noWorks")}</p> : null}
+        {sortedWorks.length > 0 ? (
+          <div className={styles.paymentLegend} aria-label={t("workPayment.columnTitle")}>
+            <span className={styles.paymentLegendLabel}>{t("workPayment.legendLabel")}</span>
+            <WorkPaymentStatusBadge status="pending" />
+            <WorkPaymentStatusBadge status="submitted" />
+            <WorkPaymentStatusBadge status="paid" />
+          </div>
+        ) : null}
         <Table columns={columns} rows={paginatedWorks} rowKey={(row) => row.id} />
 
         <div className={styles.pagination}>

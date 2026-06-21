@@ -8,6 +8,8 @@ import { z } from "zod";
 import { Category } from "@/entities/category/model/types";
 import { WorkEntry } from "@/entities/work/model/types";
 import { deleteWorkEntry, updateWorkEntry } from "@/entities/work/model/work-service";
+import { WorkPaymentStatusEditor } from "@/features/work-entry/ui/work-payment-status-editor";
+import { WorkPaymentStatusBadge } from "@/features/work-entry/ui/work-payment-status-badge";
 import { useAuth } from "@/shared/lib/auth/auth-context";
 import { useI18n } from "@/shared/lib/i18n/i18n-context";
 import { createWorkSchema } from "@/shared/lib/validation/schemas";
@@ -163,6 +165,14 @@ export function WorkDetailsModal({ work, isOpen, categories, onClose, onUpdated 
               <span className={styles.value}>{work.amount.toFixed(2)}</span>
             </div>
           ) : null}
+          {user?.role === "admin" ? (
+            <WorkPaymentStatusEditor workId={work.id} status={work.paymentStatus} onUpdated={onUpdated} />
+          ) : (
+            <div className={styles.field}>
+              <span className={styles.label}>{t("workPayment.sectionTitle")}</span>
+              <WorkPaymentStatusBadge status={work.paymentStatus} />
+            </div>
+          )}
           {confirmDelete ? (
             <p className={styles.confirmDeleteText}>{t("workDetails.deleteConfirm")}</p>
           ) : null}

@@ -119,6 +119,18 @@ export const translations = {
       deleteFailedPermission:
         "Немає прав на видалення. Опублікуйте firestore.rules у Firebase Console (Firestore → Rules → Publish). Для адміна в users/{uid} має бути role: admin.",
     },
+    workPayment: {
+      columnTitle: "Оплата",
+      sectionTitle: "Статус оплати",
+      sectionHint: "Відмітьте етап: акт, подання на оплату чи вже оплачено.",
+      pending: "Не подано",
+      submitted: "Подано на оплату",
+      paid: "Оплачено",
+      filterLabel: "Статус оплати",
+      filterAll: "Усі статуси",
+      updateFailed: "Не вдалося оновити статус",
+      legendLabel: "Позначки:",
+    },
   },
   en: {
     common: {
@@ -238,6 +250,18 @@ export const translations = {
       deleteFailedPermission:
         "Permission denied. Publish firestore.rules in Firebase Console (Firestore → Rules → Publish). Admins need role: admin in users/{uid}.",
     },
+    workPayment: {
+      columnTitle: "Payment",
+      sectionTitle: "Payment status",
+      sectionHint: "Track act submission and whether the work has been paid.",
+      pending: "Not submitted",
+      submitted: "Submitted for payment",
+      paid: "Paid",
+      filterLabel: "Payment status",
+      filterAll: "All statuses",
+      updateFailed: "Failed to update status",
+      legendLabel: "Legend:",
+    },
   },
 } as const;
 
@@ -345,4 +369,14 @@ export type TranslationPath =
   | "workDetails.deleteConfirmAction"
   | "workDetails.deleted"
   | "workDetails.deleteFailed"
-  | "workDetails.deleteFailedPermission";
+  | "workDetails.deleteFailedPermission"
+  | "workPayment.columnTitle"
+  | "workPayment.sectionTitle"
+  | "workPayment.sectionHint"
+  | "workPayment.pending"
+  | "workPayment.submitted"
+  | "workPayment.paid"
+  | "workPayment.filterLabel"
+  | "workPayment.filterAll"
+  | "workPayment.updateFailed"
+  | "workPayment.legendLabel";
