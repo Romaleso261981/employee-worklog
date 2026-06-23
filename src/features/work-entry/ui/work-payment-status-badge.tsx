@@ -10,9 +10,33 @@ const STATUS_I18N: Record<WorkPaymentStatus, "workPayment.pending" | "workPaymen
   paid: "workPayment.paid",
 };
 
-export function WorkPaymentStatusBadge({ status }: { status: WorkPaymentStatus }) {
+export function WorkPaymentStatusBadge({
+  status,
+  selected,
+  onClick,
+}: {
+  status: WorkPaymentStatus;
+  selected?: boolean;
+  onClick?: () => void;
+}) {
   const { t } = useI18n();
-  return (
-    <span className={`${styles.badge} ${styles[`badge_${status}`]}`}>{t(STATUS_I18N[status])}</span>
-  );
+  const className = [
+    styles.badge,
+    styles[`badge_${status}`],
+    onClick ? styles.badgeInteractive : "",
+    selected ? styles.badgeSelected : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const label = t(STATUS_I18N[status]);
+
+  if (onClick) {
+    return (
+      <button type="button" className={className} onClick={onClick} aria-pressed={Boolean(selected)} title={label}>
+        {label}
+      </button>
+    );
+  }
+
+  return <span className={className}>{label}</span>;
 }

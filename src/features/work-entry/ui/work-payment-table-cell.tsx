@@ -1,9 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { WorkPaymentStatus } from "@/entities/work/model/types";
 import { WorkPaymentStatusBadge } from "./work-payment-status-badge";
 import { WorkPaymentStatusSelect } from "./work-payment-status-select";
-import styles from "./work-payment-table-cell.module.css";
 
 interface Props {
   workId: string;
@@ -13,14 +13,28 @@ interface Props {
 }
 
 export function WorkPaymentTableCell({ workId, status, canEdit, onUpdated }: Props) {
+  const [editing, setEditing] = useState(false);
+
   if (!canEdit) {
     return <WorkPaymentStatusBadge status={status} />;
   }
 
+  if (!editing) {
+    return <WorkPaymentStatusBadge status={status} onClick={() => setEditing(true)} />;
+  }
+
   return (
-    <div className={styles.cell}>
-      <WorkPaymentStatusBadge status={status} />
-      <WorkPaymentStatusSelect workId={workId} status={status} onUpdated={onUpdated} compact />
-    </div>
+    <WorkPaymentStatusSelect
+      workId={workId}
+      status={status}
+      compact
+      selectOnly
+      autoFocus
+      onUpdated={async () => {
+        await onUpdated();
+        setEditing(false);
+      }}
+      onClose={() => setEditing(false)}
+    />
   );
 }

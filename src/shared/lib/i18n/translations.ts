@@ -130,6 +130,7 @@ export const translations = {
       filterAll: "Усі статуси",
       updateFailed: "Не вдалося оновити статус",
       legendLabel: "Позначки:",
+      legendShowAll: "Усі записи",
     },
   },
   en: {
@@ -261,6 +262,7 @@ export const translations = {
       filterAll: "All statuses",
       updateFailed: "Failed to update status",
       legendLabel: "Legend:",
+      legendShowAll: "Show all",
     },
   },
 } as const;
@@ -379,4 +381,5 @@ export type TranslationPath =
   | "workPayment.filterLabel"
   | "workPayment.filterAll"
   | "workPayment.updateFailed"
-  | "workPayment.legendLabel";
+  | "workPayment.legendLabel"
+  | "workPayment.legendShowAll";

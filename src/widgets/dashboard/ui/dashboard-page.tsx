@@ -247,8 +247,7 @@ export function DashboardPage() {
       const matchesCategory = categoryFilter ? item.categoryId === categoryFilter : true;
       const matchesWorker =
         user?.role === "admin" ? true : workerFilter ? item.userEmail === workerFilter : true;
-      const matchesPayment =
-        user?.role === "admin" && paymentStatusFilter ? item.paymentStatus === paymentStatusFilter : true;
+      const matchesPayment = paymentStatusFilter ? item.paymentStatus === paymentStatusFilter : true;
       const matchesDate = matchesDateString(
         item.workDate,
         dateFilterPreset,
@@ -292,7 +291,12 @@ export function DashboardPage() {
       n += 1;
     }
     return n;
-  }, [categoryFilter, workerFilter, paymentStatusFilter, dateFilterPreset]);
+  }, [categoryFilter, workerFilter, paymentStatusFilter, dateFilterPreset, user?.role]);
+
+  const setPaymentStatusFilterAndPage = useCallback((value: "" | WorkPaymentStatus) => {
+    setPaymentStatusFilter(value);
+    setPage(1);
+  }, []);
 
   const resetWorksFilters = useCallback(() => {
     const d = new Date();
@@ -891,12 +895,27 @@ export function DashboardPage() {
         ) : null}
 
         {!dataLoading && sortedWorks.length === 0 ? <p>{t("dashboard.noWorks")}</p> : null}
-        {sortedWorks.length > 0 ? (
+        {!dataLoading && (worksForView.length > 0 || paymentStatusFilter) ? (
           <div className={styles.paymentLegend} aria-label={t("workPayment.columnTitle")}>
             <span className={styles.paymentLegendLabel}>{t("workPayment.legendLabel")}</span>
-            <WorkPaymentStatusBadge status="pending" />
-            <WorkPaymentStatusBadge status="submitted" />
-            <WorkPaymentStatusBadge status="paid" />
+            {(["pending", "submitted", "paid"] as const).map((status) => (
+              <WorkPaymentStatusBadge
+                key={status}
+                status={status}
+                selected={paymentStatusFilter === status}
+                onClick={() =>
+                  setPaymentStatusFilterAndPage(paymentStatusFilter === status ? "" : status)
+                }
+              />
+            ))}
+            <button
+              type="button"
+              className={`${styles.paymentLegendAllButton} ${paymentStatusFilter === "" ? styles.paymentLegendAllButtonActive : ""}`}
+              onClick={() => setPaymentStatusFilterAndPage("")}
+              aria-pressed={paymentStatusFilter === ""}
+            >
+              {t("workPayment.legendShowAll")}
+            </button>
           </div>
         ) : null}
         <Table columns={columns} rows={paginatedWorks} rowKey={(row) => row.id} />

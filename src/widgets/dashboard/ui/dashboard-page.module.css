@@ -78,6 +78,33 @@
   margin-right: 4px;
 }
 
+.paymentLegendAllButton {
+  margin-left: auto;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text, #1f2937);
+  cursor: pointer;
+}
+
+.paymentLegendAllButton:hover {
+  border-color: var(--primary, #3158f5);
+}
+
+.paymentLegendAllButtonActive {
+  border-color: var(--primary, #3158f5);
+  background: #eef2ff;
+  color: var(--primary, #3158f5);
+}
+
+.paymentLegendAllButton:focus-visible {
+  outline: 2px solid var(--primary, #3158f5);
+  outline-offset: 2px;
+}
+
 /* Співробітник: три вкладки (головна / роботи / витрати), зручно на мобільному */
 .employeeTabBar {
   position: sticky;
