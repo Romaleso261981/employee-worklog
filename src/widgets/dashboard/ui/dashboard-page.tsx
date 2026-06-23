@@ -11,6 +11,7 @@ import { WorkPaymentTableCell } from "@/features/work-entry/ui/work-payment-tabl
 import { WorkPaymentStatusBadge } from "@/features/work-entry/ui/work-payment-status-badge";
 import { WorkDetailsModal } from "@/features/work-entry/ui/work-details-modal";
 import { AdminTools } from "@/features/admin/ui/admin-tools";
+import { AdminWorkerScopeDropdown } from "@/features/admin/ui/admin-worker-scope-dropdown";
 import { useAuth } from "@/shared/lib/auth/auth-context";
 import { useI18n } from "@/shared/lib/i18n/i18n-context";
 import { CenteredLoader } from "@/shared/ui/centered-loader/centered-loader";
@@ -19,6 +20,7 @@ import { Modal } from "@/shared/ui/modal/modal";
 import { Table, TableColumn } from "@/shared/ui/table/table";
 import { useToast } from "@/shared/ui/toast/toast-provider";
 import { type DateFilterPreset, matchesDateString } from "@/shared/lib/date-filter";
+import { filterItemsByWorkerEmails } from "@/shared/lib/admin-worker-scope";
 import styles from "./dashboard-page.module.css";
 
 const PAGE_SIZE = 8;
@@ -168,7 +170,7 @@ export function DashboardPage() {
   const [worksFilterModalOpen, setWorksFilterModalOpen] = useState(false);
   const [payoutFilterModalOpen, setPayoutFilterModalOpen] = useState(false);
   const [selectedWorkId, setSelectedWorkId] = useState<string | null>(null);
-  const [adminSelectedWorker, setAdminSelectedWorker] = useState("");
+  const [adminSelectedWorkerEmails, setAdminSelectedWorkerEmails] = useState<string[] | null>(null);
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<"" | WorkPaymentStatus>("");
 
   const loadData = useCallback(async () => {
@@ -220,19 +222,25 @@ export function DashboardPage() {
     );
   }, [works, salaryPayouts]);
 
-  const adminScopedWorks = useMemo(() => {
-    if (!adminSelectedWorker) {
-      return works;
+  useEffect(() => {
+    if (allWorkerEmails.length === 0) {
+      return;
     }
-    return works.filter((item) => item.userEmail === adminSelectedWorker);
-  }, [adminSelectedWorker, works]);
+    setAdminSelectedWorkerEmails((prev) => {
+      if (prev === null) {
+        return [...allWorkerEmails];
+      }
+      return prev.filter((email) => allWorkerEmails.includes(email));
+    });
+  }, [allWorkerEmails]);
+
+  const adminScopedWorks = useMemo(() => {
+    return filterItemsByWorkerEmails(works, allWorkerEmails, adminSelectedWorkerEmails);
+  }, [adminSelectedWorkerEmails, allWorkerEmails, works]);
 
   const adminScopedPayouts = useMemo(() => {
-    if (!adminSelectedWorker) {
-      return salaryPayouts;
-    }
-    return salaryPayouts.filter((item) => item.userEmail === adminSelectedWorker);
-  }, [adminSelectedWorker, salaryPayouts]);
+    return filterItemsByWorkerEmails(salaryPayouts, allWorkerEmails, adminSelectedWorkerEmails);
+  }, [adminSelectedWorkerEmails, allWorkerEmails, salaryPayouts]);
 
   const worksForView = user?.role === "admin" ? adminScopedWorks : works;
   const payoutsForView = user?.role === "admin" ? adminScopedPayouts : salaryPayouts;
@@ -240,7 +248,25 @@ export function DashboardPage() {
   useEffect(() => {
     setPage(1);
     setPayoutPage(1);
-  }, [adminSelectedWorker]);
+  }, [adminSelectedWorkerEmails]);
+
+  const toggleAdminWorkerEmail = useCallback((email: string) => {
+    setAdminSelectedWorkerEmails((prev) => {
+      const base = prev ?? [...allWorkerEmails];
+      if (base.includes(email)) {
+        return base.filter((item) => item !== email);
+      }
+      return [...base, email];
+    });
+    setPage(1);
+    setPayoutPage(1);
+  }, [allWorkerEmails]);
+
+  const selectAllAdminWorkers = useCallback(() => {
+    setAdminSelectedWorkerEmails([...allWorkerEmails]);
+    setPage(1);
+    setPayoutPage(1);
+  }, [allWorkerEmails]);
 
   const filteredWorks = useMemo(() => {
     return worksForView.filter((item) => {
@@ -636,21 +662,12 @@ export function DashboardPage() {
 
       {user.role === "admin" ? (
         <section className={styles.adminWorkerScope} aria-label={t("dashboard.adminScopeWorkerLabel")}>
-          <label className={styles.adminWorkerScopeField}>
-            <span className={styles.adminWorkerScopeLabel}>{t("dashboard.adminScopeWorkerLabel")}</span>
-            <select
-              className={styles.select}
-              value={adminSelectedWorker}
-              onChange={(event) => setAdminSelectedWorker(event.target.value)}
-            >
-              <option value="">{t("dashboard.allWorkers")}</option>
-              {allWorkerEmails.map((email) => (
-                <option key={email} value={email}>
-                  {email}
-                </option>
-              ))}
-            </select>
-          </label>
+          <AdminWorkerScopeDropdown
+            allWorkerEmails={allWorkerEmails}
+            selectedEmails={adminSelectedWorkerEmails}
+            onToggle={toggleAdminWorkerEmail}
+            onSelectAll={selectAllAdminWorkers}
+          />
           <p className={styles.adminWorkerScopeHint}>{t("dashboard.adminScopeWorkerHint")}</p>
         </section>
       ) : null}
@@ -1152,7 +1169,7 @@ export function DashboardPage() {
         <AdminTools
           adminUid={user.uid}
           works={works}
-          scopeWorkerEmail={adminSelectedWorker}
+          scopeWorkerEmails={adminSelectedWorkerEmails}
           onDataChanged={loadData}
         />
       ) : null}

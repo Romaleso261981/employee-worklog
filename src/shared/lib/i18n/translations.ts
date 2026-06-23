@@ -85,8 +85,10 @@ export const translations = {
       resetFilters: "Скинути фільтри",
       done: "Готово",
       workerFilterLabel: "Працівник",
-      adminScopeWorkerLabel: "Працівник для перегляду",
-      adminScopeWorkerHint: "Фінанси, роботи та виплати показуються для обраного працівника",
+      adminScopeWorkersButton: "Працівники",
+      adminScopeSelectAll: "Всі",
+      adminScopeWorkerLabel: "Працівники для перегляду",
+      adminScopeWorkerHint: "Оберіть у списку. «Всі» у меню — усі працівники.",
     },
     workForm: {
       title: "Додати роботу",
@@ -218,8 +220,10 @@ export const translations = {
       resetFilters: "Reset filters",
       done: "Done",
       workerFilterLabel: "Worker",
-      adminScopeWorkerLabel: "View employee",
-      adminScopeWorkerHint: "Finances, work, and payouts reflect the selected employee",
+      adminScopeWorkersButton: "Workers",
+      adminScopeSelectAll: "All",
+      adminScopeWorkerLabel: "Employees to view",
+      adminScopeWorkerHint: "Choose in the menu. “All” selects everyone.",
     },
     workForm: {
       title: "Add work",
@@ -348,6 +352,8 @@ export type TranslationPath =
   | "dashboard.resetFilters"
   | "dashboard.done"
   | "dashboard.workerFilterLabel"
+  | "dashboard.adminScopeWorkersButton"
+  | "dashboard.adminScopeSelectAll"
   | "dashboard.adminScopeWorkerLabel"
   | "dashboard.adminScopeWorkerHint"
   | "workForm.title"

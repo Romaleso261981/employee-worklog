@@ -1,0 +1,123 @@
+.root {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 10px 14px 10px 16px;
+  border: 1px solid rgba(49, 88, 245, 0.35);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(16, 31, 61, 0.06);
+}
+
+.trigger:hover {
+  background: rgba(49, 88, 245, 0.04);
+}
+
+.triggerOpen {
+  border-color: var(--primary, #3158f5);
+  box-shadow: 0 0 0 2px rgba(49, 88, 245, 0.2);
+}
+
+.trigger:focus-visible {
+  outline: 2px solid var(--primary, #3158f5);
+  outline-offset: 2px;
+}
+
+.chevron {
+  flex-shrink: 0;
+  opacity: 0.75;
+  transition: transform 0.15s ease;
+}
+
+.triggerOpen .chevron {
+  transform: rotate(180deg);
+}
+
+.panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 40;
+  width: min(22rem, calc(100vw - 32px));
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 12px 40px rgba(16, 31, 61, 0.16);
+  overflow: hidden;
+}
+
+.panelToolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  background: #f8faff;
+}
+
+.selectAllButton {
+  margin: 0;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--primary, #3158f5);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.selectAllButton:hover {
+  background: #eef2ff;
+}
+
+.selectAllButton:focus-visible {
+  outline: 2px solid var(--primary, #3158f5);
+  outline-offset: 1px;
+}
+
+.list {
+  display: grid;
+  gap: 4px;
+  max-height: min(16rem, 50vh);
+  overflow-y: auto;
+  padding: 8px 10px 12px;
+}
+
+.option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.35;
+  cursor: pointer;
+  user-select: none;
+  word-break: break-word;
+}
+
+.option:hover {
+  background: #f4f7fc;
+}
+
+.option input {
+  width: 1rem;
+  height: 1rem;
+  margin: 2px 0 0;
+  flex-shrink: 0;
+  cursor: pointer;
+}

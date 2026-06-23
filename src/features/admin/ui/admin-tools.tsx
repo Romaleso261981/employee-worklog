@@ -10,6 +10,7 @@ import { SalaryPayout, WorkEntry } from "@/entities/work/model/types";
 import { Button } from "@/shared/ui/button/button";
 import { Input } from "@/shared/ui/input/input";
 import { type DateFilterPreset, matchesDateString } from "@/shared/lib/date-filter";
+import { filterItemsByWorkerEmails } from "@/shared/lib/admin-worker-scope";
 import { categorySchema, salaryPayoutSchema, workAdminEditSchema } from "@/shared/lib/validation/schemas";
 import styles from "./admin-tools.module.css";
 
@@ -19,11 +20,11 @@ interface Props {
   adminUid: string;
   works: WorkEntry[];
   onDataChanged: () => Promise<void>;
-  /** Якщо задано — фільтр працівника керується з дашборду, локальний селект ховається */
-  scopeWorkerEmail?: string;
+  /** Якщо задано — фільтр працівників керується з дашборду, локальний селект ховається */
+  scopeWorkerEmails?: string[] | null;
 }
 
-export function AdminTools({ adminUid, works, onDataChanged, scopeWorkerEmail }: Props) {
+export function AdminTools({ adminUid, works, onDataChanged, scopeWorkerEmails }: Props) {
   const [categoryError, setCategoryError] = useState<string | null>(null);
   const [salaryError, setSalaryError] = useState<string | null>(null);
   const [salaryLoading, setSalaryLoading] = useState(true);
@@ -109,12 +110,18 @@ export function AdminTools({ adminUid, works, onDataChanged, scopeWorkerEmail }:
   }, [works, salaryPayouts]);
 
   useEffect(() => {
-    if (scopeWorkerEmail !== undefined) {
-      setSelectedEmail(scopeWorkerEmail);
+    if (scopeWorkerEmails === undefined || scopeWorkerEmails === null) {
+      return;
     }
-  }, [scopeWorkerEmail]);
+    if (scopeWorkerEmails.length > 0 && !scopeWorkerEmails.includes(payoutRecipientEmail)) {
+      setPayoutRecipientEmail(scopeWorkerEmails[0]);
+    }
+  }, [scopeWorkerEmails, payoutRecipientEmail]);
 
   useEffect(() => {
+    if (scopeWorkerEmails !== undefined) {
+      return;
+    }
     if (selectedEmail) {
       setPayoutRecipientEmail(selectedEmail);
       return;
@@ -123,7 +130,7 @@ export function AdminTools({ adminUid, works, onDataChanged, scopeWorkerEmail }:
     if (!payoutRecipientEmail && workerEmails.length > 0) {
       setPayoutRecipientEmail(workerEmails[0]);
     }
-  }, [selectedEmail, payoutRecipientEmail, workerEmails]);
+  }, [scopeWorkerEmails, selectedEmail, payoutRecipientEmail, workerEmails]);
 
   const workerIdByEmail = useMemo(() => {
     const map = new Map<string, string>();
@@ -136,20 +143,26 @@ export function AdminTools({ adminUid, works, onDataChanged, scopeWorkerEmail }:
     return map;
   }, [works, salaryPayouts]);
 
+  const scopedWorksBase = useMemo(() => {
+    if (scopeWorkerEmails !== undefined) {
+      return filterItemsByWorkerEmails(works, workerEmails, scopeWorkerEmails);
+    }
+    return selectedEmail ? works.filter((work) => work.userEmail === selectedEmail) : works;
+  }, [scopeWorkerEmails, selectedEmail, workerEmails, works]);
+
   const filteredWorks = useMemo(() => {
-    const base = selectedEmail ? works.filter((work) => work.userEmail === selectedEmail) : works;
     const search = workSearchTerm.trim().toLowerCase();
     if (!search) {
-      return base;
+      return scopedWorksBase;
     }
-    return base.filter((work) => {
+    return scopedWorksBase.filter((work) => {
       return (
         work.description.toLowerCase().includes(search) ||
         work.workDate.includes(workSearchTerm) ||
         work.categoryName.toLowerCase().includes(search)
       );
     });
-  }, [selectedEmail, workSearchTerm, works]);
+  }, [scopedWorksBase, workSearchTerm]);
 
   const workCategoryOptions = useMemo(() => {
     return [...new Set(filteredWorks.map((w) => w.categoryName))].sort((a, b) => a.localeCompare(b));
@@ -189,8 +202,11 @@ export function AdminTools({ adminUid, works, onDataChanged, scopeWorkerEmail }:
   }, [sortedDateFilteredWorks, worksPage]);
 
   const filteredPayouts = useMemo(() => {
+    if (scopeWorkerEmails !== undefined) {
+      return filterItemsByWorkerEmails(salaryPayouts, workerEmails, scopeWorkerEmails);
+    }
     return selectedEmail ? salaryPayouts.filter((payout) => payout.userEmail === selectedEmail) : salaryPayouts;
-  }, [salaryPayouts, selectedEmail]);
+  }, [salaryPayouts, scopeWorkerEmails, selectedEmail, workerEmails]);
 
   const dateFilteredPayouts = useMemo(() => {
     return filteredPayouts.filter((payout) =>
@@ -212,7 +228,7 @@ export function AdminTools({ adminUid, works, onDataChanged, scopeWorkerEmail }:
   useEffect(() => {
     setWorksPage(1);
     setPayoutsPage(1);
-  }, [selectedEmail]);
+  }, [selectedEmail, scopeWorkerEmails]);
 
   useEffect(() => {
     setWorksPage((prev) => Math.min(prev, worksPageCount));
@@ -535,7 +551,7 @@ export function AdminTools({ adminUid, works, onDataChanged, scopeWorkerEmail }:
 
       <div className={styles.form}>
         <h2>Адмін: Редагування суми</h2>
-        {scopeWorkerEmail === undefined ? (
+        {scopeWorkerEmails === undefined ? (
           <div className={styles.filterGroup}>
             <label htmlFor="worker-email-filter">Працівник</label>
             <select
