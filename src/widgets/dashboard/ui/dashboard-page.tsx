@@ -908,45 +908,6 @@ export function DashboardPage() {
                 </>
               ) : null}
             </div>
-
-            <div className={styles.worksFilterModalSection}>
-              <h3 className={styles.worksFilterModalHeading}>{t("dashboard.sortSection")}</h3>
-              <label className={styles.worksFilterField}>
-                <span>{t("dashboard.sortByLabel")}</span>
-                <select
-                  className={styles.select}
-                  value={sortField}
-                  onChange={(event) => {
-                    const field = event.target.value as SortField;
-                    setSortField(field);
-                    setSortDirection(defaultSortDirection(field));
-                    setPage(1);
-                  }}
-                >
-                  <option value="date">{t("dashboard.dateLabel")}</option>
-                  {user.role === "admin" ? (
-                    <option value="worker">{t("dashboard.workerFilterLabel")}</option>
-                  ) : null}
-                  <option value="description">{t("dashboard.descriptionLabel")}</option>
-                  <option value="category">{t("dashboard.categoryLabel")}</option>
-                  <option value="amount">{t("dashboard.amountLabel")}</option>
-                </select>
-              </label>
-              <label className={styles.worksFilterField}>
-                <span>{t("dashboard.sortDirectionLabel")}</span>
-                <select
-                  className={styles.select}
-                  value={sortDirection}
-                  onChange={(event) => {
-                    setSortDirection(event.target.value as SortDirection);
-                    setPage(1);
-                  }}
-                >
-                  <option value="desc">{t("dashboard.sortDirectionDesc")}</option>
-                  <option value="asc">{t("dashboard.sortDirectionAsc")}</option>
-                </select>
-              </label>
-            </div>
           </div>
           <div className={styles.worksFilterModalFooter}>
             <button type="button" className={styles.adminTabButton} onClick={resetWorksFilters}>
@@ -1133,42 +1094,6 @@ export function DashboardPage() {
                     </label>
                   </>
                 ) : null}
-              </div>
-
-              <div className={styles.worksFilterModalSection}>
-                <h3 className={styles.worksFilterModalHeading}>{t("dashboard.sortSection")}</h3>
-                <label className={styles.worksFilterField}>
-                  <span>{t("dashboard.sortByLabel")}</span>
-                  <select
-                    className={styles.select}
-                    value={payoutSortField}
-                    onChange={(event) => {
-                      const field = event.target.value as PayoutSortField;
-                      setPayoutSortField(field);
-                      setPayoutSortDirection(field === "amount" || field === "date" ? "desc" : "asc");
-                      setPayoutPage(1);
-                    }}
-                  >
-                    <option value="date">{t("dashboard.dateLabel")}</option>
-                    {user.role === "admin" ? <option value="worker">{t("dashboard.workerFilterLabel")}</option> : null}
-                    <option value="description">{t("dashboard.descriptionLabel")}</option>
-                    <option value="amount">{t("dashboard.amountLabel")}</option>
-                  </select>
-                </label>
-                <label className={styles.worksFilterField}>
-                  <span>{t("dashboard.sortDirectionLabel")}</span>
-                  <select
-                    className={styles.select}
-                    value={payoutSortDirection}
-                    onChange={(event) => {
-                      setPayoutSortDirection(event.target.value as SortDirection);
-                      setPayoutPage(1);
-                    }}
-                  >
-                    <option value="desc">{t("dashboard.sortDirectionDesc")}</option>
-                    <option value="asc">{t("dashboard.sortDirectionAsc")}</option>
-                  </select>
-                </label>
               </div>
             </div>
             <div className={styles.worksFilterModalFooter}>
