@@ -22,3 +22,12 @@ export function isAllWorkersSelected(allWorkerEmails: string[], selectedEmails: 
   }
   return allWorkerEmails.every((email) => selectedEmails.includes(email));
 }
+
+export function sameEmailSelection(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+  const sortedA = [...a].sort((x, y) => x.localeCompare(y));
+  const sortedB = [...b].sort((x, y) => x.localeCompare(y));
+  return sortedA.every((email, index) => email === sortedB[index]);
+}

@@ -21,7 +21,7 @@ import { Modal } from "@/shared/ui/modal/modal";
 import { Table, TableColumn } from "@/shared/ui/table/table";
 import { useToast } from "@/shared/ui/toast/toast-provider";
 import { type DateFilterPreset, matchesDateString } from "@/shared/lib/date-filter";
-import { filterItemsByWorkerEmails } from "@/shared/lib/admin-worker-scope";
+import { filterItemsByWorkerEmails, sameEmailSelection } from "@/shared/lib/admin-worker-scope";
 import { loadDashboardFilters, saveDashboardFilters } from "@/shared/lib/dashboard-filter-persistence";
 import styles from "./dashboard-page.module.css";
 
@@ -217,6 +217,8 @@ export function DashboardPage() {
         setAdminSelectedWorkerEmails(saved.adminSelectedWorkerEmails);
       }
       setOrganizationUnpaidFilter(saved.organizationUnpaidFilter);
+      setPage(saved.worksPage);
+      setPayoutPage(saved.payoutPage);
     }
 
     dashboardFiltersHydratedRef.current = true;
@@ -252,6 +254,8 @@ export function DashboardPage() {
       employeeView,
       adminSelectedWorkerEmails,
       organizationUnpaidFilter,
+      worksPage: page,
+      payoutPage,
     });
   }, [
     user?.uid,
@@ -279,6 +283,8 @@ export function DashboardPage() {
     employeeView,
     adminSelectedWorkerEmails,
     organizationUnpaidFilter,
+    page,
+    payoutPage,
   ]);
 
   const loadData = useCallback(async () => {
@@ -338,7 +344,8 @@ export function DashboardPage() {
       if (prev === null) {
         return [...allWorkerEmails];
       }
-      return prev.filter((email) => allWorkerEmails.includes(email));
+      const next = prev.filter((email) => allWorkerEmails.includes(email));
+      return sameEmailSelection(next, prev) ? prev : next;
     });
   }, [allWorkerEmails]);
 
@@ -352,11 +359,6 @@ export function DashboardPage() {
 
   const worksForView = user?.role === "admin" ? adminScopedWorks : works;
   const payoutsForView = user?.role === "admin" ? adminScopedPayouts : salaryPayouts;
-
-  useEffect(() => {
-    setPage(1);
-    setPayoutPage(1);
-  }, [adminSelectedWorkerEmails]);
 
   const toggleAdminWorkerEmail = useCallback((email: string) => {
     setAdminSelectedWorkerEmails((prev) => {
@@ -527,6 +529,11 @@ export function DashboardPage() {
   }, [filteredWorks, sortDirection, sortField]);
 
   const pageCount = Math.max(1, Math.ceil(sortedWorks.length / PAGE_SIZE));
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, pageCount));
+  }, [pageCount]);
+
   const paginatedWorks = useMemo(() => {
     const from = (page - 1) * PAGE_SIZE;
     return sortedWorks.slice(from, from + PAGE_SIZE);
@@ -668,6 +675,11 @@ export function DashboardPage() {
   }, [filteredPayoutsAdmin, payoutSortDirection, payoutSortField]);
 
   const payoutPageCount = Math.max(1, Math.ceil(sortedPayoutsAdmin.length / PAGE_SIZE));
+
+  useEffect(() => {
+    setPayoutPage((current) => Math.min(current, payoutPageCount));
+  }, [payoutPageCount]);
+
   const paginatedPayoutsAdmin = useMemo(() => {
     const from = (payoutPage - 1) * PAGE_SIZE;
     return sortedPayoutsAdmin.slice(from, from + PAGE_SIZE);

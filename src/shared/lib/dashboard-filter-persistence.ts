@@ -34,6 +34,8 @@ export interface DashboardPersistedFilters {
   employeeView: "main" | "works" | "waste";
   adminSelectedWorkerEmails: string[] | null;
   organizationUnpaidFilter: boolean;
+  worksPage: number;
+  payoutPage: number;
 }
 
 const DATE_PRESETS: DateFilterPreset[] = ["all", "year", "month", "range"];
@@ -107,6 +109,8 @@ export function loadDashboardFilters(userId: string): DashboardPersistedFilters 
       employeeView: pickEnum(data.employeeView, EMPLOYEE_VIEWS, "main"),
       adminSelectedWorkerEmails,
       organizationUnpaidFilter: data.organizationUnpaidFilter === true,
+      worksPage: typeof data.worksPage === "number" && data.worksPage >= 1 ? Math.floor(data.worksPage) : 1,
+      payoutPage: typeof data.payoutPage === "number" && data.payoutPage >= 1 ? Math.floor(data.payoutPage) : 1,
     };
   } catch {
     return null;
