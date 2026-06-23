@@ -12,7 +12,8 @@
   width: min(560px, 100%);
   background: var(--surface);
   border-radius: 16px;
-  padding: 16px;
+  padding: 20px 24px 24px;
+  box-sizing: border-box;
 }
 
 .header {
@@ -20,7 +21,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 10px;
+  margin-bottom: 16px;
 }
 
 /* Узгоджено з вкладками дашборду (adminTabButton) */

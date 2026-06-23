@@ -442,14 +442,14 @@
   max-height: min(65vh, 480px);
   overflow-y: auto;
   display: grid;
-  gap: 18px;
-  padding-right: 4px;
-  margin-bottom: 4px;
+  gap: 20px;
+  padding: 4px 8px 16px 4px;
+  margin-bottom: 0;
 }
 
 .worksFilterModalSection {
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 .worksFilterModalHeading {
@@ -461,7 +461,28 @@
 
 .worksFilterField {
   display: grid;
-  gap: 6px;
+  gap: 8px;
+}
+
+.worksFilterField .select,
+.worksFilterField .dateInput {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 48px;
+  padding: 12px 2.75rem 12px 14px;
+  font-size: 15px;
+  line-height: 1.35;
+  appearance: none;
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23334155' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+}
+
+.worksFilterField .dateInput {
+  background-image: none;
+  padding: 12px 14px;
 }
 
 .worksFilterField > span {
@@ -537,11 +558,21 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  margin-top: 12px;
-  padding-top: 14px;
+  align-items: stretch;
+  gap: 12px;
+  margin-top: 4px;
+  padding: 18px 4px 4px;
   border-top: 1px solid var(--border);
+}
+
+.worksFilterModalFooter .adminTabButton {
+  display: inline-flex;
+  align-items: center;
+  flex: 1 1 calc(50% - 6px);
+  min-height: 48px;
+  padding: 12px 18px;
+  justify-content: center;
+  text-align: center;
 }
 
 /* Роботи: категорія + дати в одному компактному ряді */
