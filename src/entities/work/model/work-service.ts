@@ -34,6 +34,8 @@ function mapWorkEntryDoc(id: string, data: Record<string, unknown>): WorkEntry {
     categoryName: entry.categoryName,
     amount: typeof entry.amount === "number" ? entry.amount : 0,
     paymentStatus: normalizeWorkPaymentStatus(entry.paymentStatus),
+    organizationAmount: typeof entry.organizationAmount === "number" ? entry.organizationAmount : 0,
+    organizationPaid: entry.organizationPaid === true,
   };
 }
 
@@ -163,6 +165,21 @@ export async function updateWorkPaymentStatus(workId: string, paymentStatus: Wor
     paymentStatus,
     updatedAt: serverTimestamp(),
   });
+}
+
+export async function updateWorkOrganizationBilling(
+  workId: string,
+  patch: { organizationAmount?: number; organizationPaid?: boolean },
+): Promise<void> {
+  const db = getFirebaseDb();
+  const data: Record<string, unknown> = { updatedAt: serverTimestamp() };
+  if (patch.organizationAmount !== undefined) {
+    data.organizationAmount = patch.organizationAmount;
+  }
+  if (patch.organizationPaid !== undefined) {
+    data.organizationPaid = patch.organizationPaid;
+  }
+  await updateDoc(doc(db, "workEntries", workId), data);
 }
 
 export async function deleteWorkEntry(workId: string): Promise<void> {

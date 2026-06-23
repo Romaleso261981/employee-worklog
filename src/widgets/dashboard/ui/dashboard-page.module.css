@@ -666,6 +666,66 @@
   box-shadow: 0 4px 14px rgba(49, 88, 245, 0.12);
 }
 
+.worksTotalsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 10px;
+}
+
+.worksTotalBannerOrg {
+  border-color: #ea580c;
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+  box-shadow: 0 4px 14px rgba(234, 88, 12, 0.12);
+}
+
+.worksTotalBannerOrg .worksTotalValue {
+  color: #c2410c;
+}
+
+.organizationFilterCheckbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+
+.organizationFilterCheckbox input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  cursor: pointer;
+}
+
+.orgUnpaidFilterChip {
+  margin-left: auto;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid #fed7aa;
+  background: #fff7ed;
+  color: #c2410c;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.orgUnpaidFilterChip:hover {
+  border-color: #ea580c;
+}
+
+.orgUnpaidFilterChipActive {
+  border-color: #ea580c;
+  box-shadow: 0 0 0 2px rgba(234, 88, 12, 0.25);
+}
+
+.orgUnpaidFilterChip:focus-visible {
+  outline: 2px solid #ea580c;
+  outline-offset: 2px;
+}
+
 .worksTotalLabel {
   font-weight: 600;
   color: var(--text);

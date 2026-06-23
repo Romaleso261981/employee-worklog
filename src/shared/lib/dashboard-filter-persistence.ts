@@ -5,7 +5,7 @@ import type { DateFilterPreset } from "@/shared/lib/date-filter";
 const STORAGE_VERSION = 1;
 const storageKey = (userId: string) => `tasktrackpro.dashboardFilters.v${STORAGE_VERSION}.${userId}`;
 
-type SortField = "date" | "description" | "category" | "amount" | "worker";
+type SortField = "date" | "description" | "category" | "amount" | "worker" | "organizationAmount";
 type SortDirection = "desc" | "asc";
 type PayoutSortField = "date" | "description" | "amount" | "worker";
 
@@ -33,10 +33,11 @@ export interface DashboardPersistedFilters {
   adminView: "works" | "payouts" | "admin";
   employeeView: "main" | "works" | "waste";
   adminSelectedWorkerEmails: string[] | null;
+  organizationUnpaidFilter: boolean;
 }
 
 const DATE_PRESETS: DateFilterPreset[] = ["all", "year", "month", "range"];
-const SORT_FIELDS: SortField[] = ["date", "description", "category", "amount", "worker"];
+const SORT_FIELDS: SortField[] = ["date", "description", "category", "amount", "worker", "organizationAmount"];
 const PAYOUT_SORT_FIELDS: PayoutSortField[] = ["date", "description", "amount", "worker"];
 const SORT_DIRECTIONS: SortDirection[] = ["desc", "asc"];
 const ADMIN_VIEWS = ["works", "payouts", "admin"] as const;
@@ -105,6 +106,7 @@ export function loadDashboardFilters(userId: string): DashboardPersistedFilters 
       adminView: pickEnum(data.adminView, ADMIN_VIEWS, "works"),
       employeeView: pickEnum(data.employeeView, EMPLOYEE_VIEWS, "main"),
       adminSelectedWorkerEmails,
+      organizationUnpaidFilter: data.organizationUnpaidFilter === true,
     };
   } catch {
     return null;

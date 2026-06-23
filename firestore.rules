@@ -58,7 +58,9 @@ service cloud.firestore {
         request.resource.data.userId == resource.data.userId &&
         request.resource.data.userEmail == resource.data.userEmail &&
         request.resource.data.amount == resource.data.amount &&
-        request.resource.data.paymentStatus == resource.data.paymentStatus
+        request.resource.data.paymentStatus == resource.data.paymentStatus &&
+        request.resource.data.organizationAmount == resource.data.organizationAmount &&
+        request.resource.data.organizationPaid == resource.data.organizationPaid
       );
       allow delete: if isAdmin() || (
         isAuth() && resource.data.userId == request.auth.uid

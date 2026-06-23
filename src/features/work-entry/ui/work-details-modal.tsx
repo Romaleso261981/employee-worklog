@@ -166,6 +166,15 @@ export function WorkDetailsModal({ work, isOpen, categories, onClose, onUpdated 
             </div>
           ) : null}
           {user?.role === "admin" ? (
+            <div className={styles.field}>
+              <span className={styles.label}>{t("workOrganization.sectionTitle")}</span>
+              <span className={styles.value}>
+                {work.organizationAmount.toFixed(2)} —{" "}
+                {work.organizationPaid ? t("workOrganization.paidShort") : t("workOrganization.unpaidShort")}
+              </span>
+            </div>
+          ) : null}
+          {user?.role === "admin" ? (
             <WorkPaymentStatusEditor workId={work.id} status={work.paymentStatus} onUpdated={onUpdated} />
           ) : (
             <div className={styles.field}>

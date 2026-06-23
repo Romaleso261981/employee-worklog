@@ -15,6 +15,10 @@ export interface WorkEntry {
   amount: number;
   /** pending — ще не подано; submitted — подано на оплату; paid — оплачено */
   paymentStatus: WorkPaymentStatus;
+  /** Сума, яку має виплатити організація (лише для обліку адміна) */
+  organizationAmount: number;
+  /** Чи організація вже виплатила цю суму */
+  organizationPaid: boolean;
 }
 
 export interface CreateWorkEntryPayload {

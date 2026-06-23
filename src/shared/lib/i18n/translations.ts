@@ -51,7 +51,8 @@ export const translations = {
       sortAmount: "Сортувати: сума",
       sortDirectionAsc: "Напрямок: зростання",
       sortDirectionDesc: "Напрямок: спадання",
-      filteredTotalLabel: "Разом (за фільтром)",
+      filteredTotalLabel: "Разом працівникам (за фільтром)",
+      employeeAmountLabel: "Працівнику",
       dateFilterMode: "Фільтр дат",
       dateFilterAll: "Усі дати",
       dateFilterByYear: "За рік",
@@ -135,6 +136,18 @@ export const translations = {
       legendLabel: "Позначки:",
       legendShowAll: "Усі записи",
     },
+    workOrganization: {
+      columnTitle: "Від організації",
+      amountLabel: "Сума від організації",
+      owedTotalLabel: "Борг організації (за фільтром)",
+      unpaidFilter: "Не оплачено організацією",
+      filterCheckbox: "Лише борг організації",
+      paidShort: "Оплачено",
+      unpaidShort: "Борг",
+      sectionTitle: "Оплата від організації",
+      paidLabel: "Організація виплатила",
+      updateFailed: "Не вдалося зберегти",
+    },
   },
   en: {
     common: {
@@ -186,7 +199,8 @@ export const translations = {
       sortAmount: "Sort: amount",
       sortDirectionAsc: "Direction: ascending",
       sortDirectionDesc: "Direction: descending",
-      filteredTotalLabel: "Total (filtered)",
+      filteredTotalLabel: "Total to workers (filtered)",
+      employeeAmountLabel: "To worker",
       dateFilterMode: "Date filter",
       dateFilterAll: "All dates",
       dateFilterByYear: "By year",
@@ -270,6 +284,18 @@ export const translations = {
       legendLabel: "Legend:",
       legendShowAll: "Show all",
     },
+    workOrganization: {
+      columnTitle: "From organization",
+      amountLabel: "Amount from organization",
+      owedTotalLabel: "Owed by organization (filtered)",
+      unpaidFilter: "Unpaid by organization",
+      filterCheckbox: "Organization debt only",
+      paidShort: "Paid",
+      unpaidShort: "Owed",
+      sectionTitle: "Organization payment",
+      paidLabel: "Organization has paid",
+      updateFailed: "Failed to save",
+    },
   },
 } as const;
 
@@ -319,6 +345,7 @@ export type TranslationPath =
   | "dashboard.sortDirectionAsc"
   | "dashboard.sortDirectionDesc"
   | "dashboard.filteredTotalLabel"
+  | "dashboard.employeeAmountLabel"
   | "dashboard.dateFilterMode"
   | "dashboard.dateFilterAll"
   | "dashboard.dateFilterByYear"
@@ -391,4 +418,14 @@ export type TranslationPath =
   | "workPayment.filterAll"
   | "workPayment.updateFailed"
   | "workPayment.legendLabel"
-  | "workPayment.legendShowAll";
+  | "workPayment.legendShowAll"
+  | "workOrganization.columnTitle"
+  | "workOrganization.amountLabel"
+  | "workOrganization.owedTotalLabel"
+  | "workOrganization.unpaidFilter"
+  | "workOrganization.filterCheckbox"
+  | "workOrganization.paidShort"
+  | "workOrganization.unpaidShort"
+  | "workOrganization.sectionTitle"
+  | "workOrganization.paidLabel"
+  | "workOrganization.updateFailed";

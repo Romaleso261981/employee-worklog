@@ -7,6 +7,7 @@ import { Category } from "@/entities/category/model/types";
 import { listAllSalaryPayouts, listAllWorkEntries, listUserSalaryPayouts, listUserWorkEntries } from "@/entities/work/model/work-service";
 import { SalaryPayout, WorkEntry, WorkPaymentStatus } from "@/entities/work/model/types";
 import { CreateWorkForm } from "@/features/work-entry/ui/create-work-form";
+import { WorkOrganizationBillingCell } from "@/features/work-entry/ui/work-organization-billing-cell";
 import { WorkPaymentTableCell } from "@/features/work-entry/ui/work-payment-table-cell";
 import { WorkPaymentStatusBadge } from "@/features/work-entry/ui/work-payment-status-badge";
 import { WorkDetailsModal } from "@/features/work-entry/ui/work-details-modal";
@@ -122,7 +123,7 @@ function DashboardFinanceBanner({
     </section>
   );
 }
-type SortField = "date" | "description" | "category" | "amount" | "worker";
+type SortField = "date" | "description" | "category" | "amount" | "worker" | "organizationAmount";
 type SortDirection = "desc" | "asc";
 type PayoutSortField = "date" | "description" | "amount" | "worker";
 
@@ -173,6 +174,7 @@ export function DashboardPage() {
   const [selectedWorkId, setSelectedWorkId] = useState<string | null>(null);
   const [adminSelectedWorkerEmails, setAdminSelectedWorkerEmails] = useState<string[] | null>(null);
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<"" | WorkPaymentStatus>("");
+  const [organizationUnpaidFilter, setOrganizationUnpaidFilter] = useState(false);
   const dashboardFiltersHydratedRef = useRef(false);
 
   useEffect(() => {
@@ -214,6 +216,7 @@ export function DashboardPage() {
       if (saved.adminSelectedWorkerEmails !== null) {
         setAdminSelectedWorkerEmails(saved.adminSelectedWorkerEmails);
       }
+      setOrganizationUnpaidFilter(saved.organizationUnpaidFilter);
     }
 
     dashboardFiltersHydratedRef.current = true;
@@ -248,6 +251,7 @@ export function DashboardPage() {
       adminView,
       employeeView,
       adminSelectedWorkerEmails,
+      organizationUnpaidFilter,
     });
   }, [
     user?.uid,
@@ -274,6 +278,7 @@ export function DashboardPage() {
     adminView,
     employeeView,
     adminSelectedWorkerEmails,
+    organizationUnpaidFilter,
   ]);
 
   const loadData = useCallback(async () => {
@@ -378,6 +383,8 @@ export function DashboardPage() {
       const matchesWorker =
         user?.role === "admin" ? true : workerFilter ? item.userEmail === workerFilter : true;
       const matchesPayment = paymentStatusFilter ? item.paymentStatus === paymentStatusFilter : true;
+      const matchesOrganization =
+        user?.role === "admin" && organizationUnpaidFilter ? !item.organizationPaid : true;
       const matchesDate = matchesDateString(
         item.workDate,
         dateFilterPreset,
@@ -387,7 +394,7 @@ export function DashboardPage() {
         dateRangeTo,
       );
 
-      return matchesCategory && matchesWorker && matchesDate && matchesPayment;
+      return matchesCategory && matchesWorker && matchesDate && matchesPayment && matchesOrganization;
     });
   }, [
     worksForView,
@@ -400,10 +407,17 @@ export function DashboardPage() {
     dateFilterMonth,
     dateRangeFrom,
     dateRangeTo,
+    organizationUnpaidFilter,
   ]);
 
   const filteredAmountTotal = useMemo(() => {
     return filteredWorks.reduce((acc, item) => acc + item.amount, 0);
+  }, [filteredWorks]);
+
+  const filteredOrganizationOwedTotal = useMemo(() => {
+    return filteredWorks.reduce((acc, item) => {
+      return item.organizationPaid ? acc : acc + item.organizationAmount;
+    }, 0);
   }, [filteredWorks]);
 
   const worksFiltersActiveCount = useMemo(() => {
@@ -420,8 +434,11 @@ export function DashboardPage() {
     if (dateFilterPreset !== "all") {
       n += 1;
     }
+    if (organizationUnpaidFilter && user?.role === "admin") {
+      n += 1;
+    }
     return n;
-  }, [categoryFilterIds, workerFilter, paymentStatusFilter, dateFilterPreset, user?.role]);
+  }, [categoryFilterIds, workerFilter, paymentStatusFilter, dateFilterPreset, organizationUnpaidFilter, user?.role]);
 
   const toggleCategoryFilter = useCallback((categoryId: string) => {
     setCategoryFilterIds((prev) =>
@@ -436,7 +453,7 @@ export function DashboardPage() {
   }, []);
 
   const defaultSortDirection = useCallback((field: SortField | PayoutSortField): SortDirection => {
-    return field === "amount" || field === "date" ? "desc" : "asc";
+    return field === "amount" || field === "date" || field === "organizationAmount" ? "desc" : "asc";
   }, []);
 
   const handleWorksSort = useCallback(
@@ -472,6 +489,7 @@ export function DashboardPage() {
     setCategoryFilterIds([]);
     setWorkerFilter("");
     setPaymentStatusFilter("");
+    setOrganizationUnpaidFilter(false);
     setDateFilterPreset("all");
     setDateFilterYear(String(d.getFullYear()));
     setDateFilterMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
@@ -486,6 +504,10 @@ export function DashboardPage() {
 
       if (sortField === "amount") {
         return (a.amount - b.amount) * directionMultiplier;
+      }
+
+      if (sortField === "organizationAmount") {
+        return (a.organizationAmount - b.organizationAmount) * directionMultiplier;
       }
 
       if (sortField === "date") {
@@ -569,10 +591,26 @@ export function DashboardPage() {
       {
         key: "amount",
         sortKey: "amount",
-        title: t("dashboard.amountLabel"),
+        title: user?.role === "admin" ? t("dashboard.employeeAmountLabel") : t("dashboard.amountLabel"),
         render: (row) => row.amount.toFixed(2),
       },
     );
+
+    if (user?.role === "admin") {
+      base.push({
+        key: "organization",
+        sortKey: "organizationAmount",
+        title: t("workOrganization.columnTitle"),
+        render: (row) => (
+          <WorkOrganizationBillingCell
+            workId={row.id}
+            organizationAmount={row.organizationAmount}
+            organizationPaid={row.organizationPaid}
+            onUpdated={loadData}
+          />
+        ),
+      });
+    }
 
     return base;
   }, [loadData, t, user?.role]);
@@ -953,6 +991,21 @@ export function DashboardPage() {
                   </select>
                 </label>
               ) : null}
+              {user.role === "admin" ? (
+                <label className={styles.worksFilterField}>
+                  <span className={styles.organizationFilterCheckbox}>
+                    <input
+                      type="checkbox"
+                      checked={organizationUnpaidFilter}
+                      onChange={(event) => {
+                        setOrganizationUnpaidFilter(event.target.checked);
+                        setPage(1);
+                      }}
+                    />
+                    {t("workOrganization.filterCheckbox")}
+                  </span>
+                </label>
+              ) : null}
               <label className={styles.worksFilterField}>
                 <span>{t("dashboard.dateFilterMode")}</span>
                 <select
@@ -1040,14 +1093,26 @@ export function DashboardPage() {
         </Modal>
 
         {filteredWorks.length > 0 ? (
-          <div className={styles.worksTotalBanner} role="status" aria-live="polite">
-            <span className={styles.worksTotalLabel}>{t("dashboard.filteredTotalLabel")}</span>
-            <strong className={styles.worksTotalValue}>{filteredAmountTotal.toFixed(2)}</strong>
+          <div
+            className={user?.role === "admin" ? styles.worksTotalsGrid : styles.worksTotalBanner}
+            role="status"
+            aria-live="polite"
+          >
+            <div className={styles.worksTotalBanner}>
+              <span className={styles.worksTotalLabel}>{t("dashboard.filteredTotalLabel")}</span>
+              <strong className={styles.worksTotalValue}>{filteredAmountTotal.toFixed(2)}</strong>
+            </div>
+            {user?.role === "admin" ? (
+              <div className={`${styles.worksTotalBanner} ${styles.worksTotalBannerOrg}`}>
+                <span className={styles.worksTotalLabel}>{t("workOrganization.owedTotalLabel")}</span>
+                <strong className={styles.worksTotalValue}>{filteredOrganizationOwedTotal.toFixed(2)}</strong>
+              </div>
+            ) : null}
           </div>
         ) : null}
 
         {!dataLoading && sortedWorks.length === 0 ? <p>{t("dashboard.noWorks")}</p> : null}
-        {!dataLoading && (worksForView.length > 0 || paymentStatusFilter) ? (
+        {!dataLoading && (worksForView.length > 0 || paymentStatusFilter || organizationUnpaidFilter) ? (
           <div className={styles.paymentLegend} aria-label={t("workPayment.columnTitle")}>
             <span className={styles.paymentLegendLabel}>{t("workPayment.legendLabel")}</span>
             {(["pending", "submitted", "paid"] as const).map((status) => (
@@ -1068,6 +1133,19 @@ export function DashboardPage() {
             >
               {t("workPayment.legendShowAll")}
             </button>
+            {user?.role === "admin" ? (
+              <button
+                type="button"
+                className={`${styles.orgUnpaidFilterChip} ${organizationUnpaidFilter ? styles.orgUnpaidFilterChipActive : ""}`}
+                onClick={() => {
+                  setOrganizationUnpaidFilter((prev) => !prev);
+                  setPage(1);
+                }}
+                aria-pressed={organizationUnpaidFilter}
+              >
+                {t("workOrganization.unpaidFilter")}
+              </button>
+            ) : null}
           </div>
         ) : null}
         <Table
