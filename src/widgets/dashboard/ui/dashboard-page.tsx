@@ -119,7 +119,7 @@ function DashboardFinanceBanner({
     </section>
   );
 }
-type SortField = "date" | "description" | "category" | "amount";
+type SortField = "date" | "description" | "category" | "amount" | "worker";
 type SortDirection = "desc" | "asc";
 type PayoutSortField = "date" | "description" | "amount" | "worker";
 
@@ -306,6 +306,38 @@ export function DashboardPage() {
     setPage(1);
   }, []);
 
+  const defaultSortDirection = useCallback((field: SortField | PayoutSortField): SortDirection => {
+    return field === "amount" || field === "date" ? "desc" : "asc";
+  }, []);
+
+  const handleWorksSort = useCallback(
+    (field: string) => {
+      const nextField = field as SortField;
+      setPage(1);
+      if (sortField === nextField) {
+        setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+        return;
+      }
+      setSortField(nextField);
+      setSortDirection(defaultSortDirection(nextField));
+    },
+    [defaultSortDirection, sortField],
+  );
+
+  const handlePayoutSort = useCallback(
+    (field: string) => {
+      const nextField = field as PayoutSortField;
+      setPayoutPage(1);
+      if (payoutSortField === nextField) {
+        setPayoutSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+        return;
+      }
+      setPayoutSortField(nextField);
+      setPayoutSortDirection(defaultSortDirection(nextField));
+    },
+    [defaultSortDirection, payoutSortField],
+  );
+
   const resetWorksFilters = useCallback(() => {
     const d = new Date();
     setCategoryFilterIds([]);
@@ -335,6 +367,10 @@ export function DashboardPage() {
         return a.categoryName.localeCompare(b.categoryName) * directionMultiplier;
       }
 
+      if (sortField === "worker") {
+        return a.userEmail.localeCompare(b.userEmail) * directionMultiplier;
+      }
+
       return a.description.localeCompare(b.description) * directionMultiplier;
     });
   }, [filteredWorks, sortDirection, sortField]);
@@ -349,6 +385,7 @@ export function DashboardPage() {
     const base: TableColumn<WorkEntry>[] = [
       {
         key: "date",
+        sortKey: "date",
         title: (
           <>
             {t("dashboard.dateLabel")}
@@ -372,6 +409,7 @@ export function DashboardPage() {
     if (user?.role === "admin") {
       base.push({
         key: "worker",
+        sortKey: "worker",
         title: t("dashboard.workerFilterLabel"),
         render: (row) => <span className={styles.workerCell}>{row.userEmail}</span>,
       });
@@ -380,6 +418,7 @@ export function DashboardPage() {
     base.push(
       {
         key: "description",
+        sortKey: "description",
         title: t("dashboard.descriptionLabel"),
         render: (row) => (
           <button
@@ -394,11 +433,13 @@ export function DashboardPage() {
       },
       {
         key: "category",
+        sortKey: "category",
         title: t("dashboard.categoryLabel"),
         render: (row) => row.categoryName,
       },
       {
         key: "amount",
+        sortKey: "amount",
         title: t("dashboard.amountLabel"),
         render: (row) => row.amount.toFixed(2),
       },
@@ -494,21 +535,25 @@ export function DashboardPage() {
   const payoutColumns: TableColumn<SalaryPayout>[] = [
     {
       key: "date",
+      sortKey: "date",
       title: t("dashboard.dateLabel"),
       render: (row) => row.payoutDate,
     },
     {
       key: "worker",
+      sortKey: "worker",
       title: t("dashboard.workerFilterLabel"),
       render: (row) => row.userEmail,
     },
     {
       key: "description",
+      sortKey: "description",
       title: t("dashboard.descriptionLabel"),
       render: (row) => row.description,
     },
     {
       key: "amount",
+      sortKey: "amount",
       title: t("dashboard.amountLabel"),
       render: (row) => `-${row.amount.toFixed(2)}`,
     },
@@ -874,11 +919,14 @@ export function DashboardPage() {
                   onChange={(event) => {
                     const field = event.target.value as SortField;
                     setSortField(field);
-                    setSortDirection(field === "amount" || field === "date" ? "desc" : "asc");
+                    setSortDirection(defaultSortDirection(field));
                     setPage(1);
                   }}
                 >
                   <option value="date">{t("dashboard.dateLabel")}</option>
+                  {user.role === "admin" ? (
+                    <option value="worker">{t("dashboard.workerFilterLabel")}</option>
+                  ) : null}
                   <option value="description">{t("dashboard.descriptionLabel")}</option>
                   <option value="category">{t("dashboard.categoryLabel")}</option>
                   <option value="amount">{t("dashboard.amountLabel")}</option>
@@ -941,7 +989,13 @@ export function DashboardPage() {
             </button>
           </div>
         ) : null}
-        <Table columns={columns} rows={paginatedWorks} rowKey={(row) => row.id} />
+        <Table
+          columns={columns}
+          rows={paginatedWorks}
+          rowKey={(row) => row.id}
+          sort={{ field: sortField, direction: sortDirection }}
+          onSort={handleWorksSort}
+        />
 
         <div className={styles.pagination}>
           <button type="button" className={styles.adminTabButton} disabled={page === 1} onClick={() => setPage((prev) => Math.max(1, prev - 1))}>
@@ -1142,7 +1196,13 @@ export function DashboardPage() {
             </div>
           ) : null}
           {!dataLoading && sortedPayoutsAdmin.length === 0 ? <p>{t("dashboard.noPayoutsMatchFilter")}</p> : null}
-          <Table columns={user.role === "admin" ? payoutColumns : employeePayoutColumns} rows={paginatedPayoutsAdmin} rowKey={(row) => row.id} />
+          <Table
+            columns={user.role === "admin" ? payoutColumns : employeePayoutColumns}
+            rows={paginatedPayoutsAdmin}
+            rowKey={(row) => row.id}
+            sort={{ field: payoutSortField, direction: payoutSortDirection }}
+            onSort={handlePayoutSort}
+          />
 
           <div className={styles.pagination}>
             <button type="button" className={styles.adminTabButton} disabled={payoutPage === 1} onClick={() => setPayoutPage((prev) => Math.max(1, prev - 1))}>
