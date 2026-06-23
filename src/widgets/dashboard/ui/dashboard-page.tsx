@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { listCategories } from "@/entities/category/model/category-service";
 import { Category } from "@/entities/category/model/types";
@@ -21,6 +21,7 @@ import { Table, TableColumn } from "@/shared/ui/table/table";
 import { useToast } from "@/shared/ui/toast/toast-provider";
 import { type DateFilterPreset, matchesDateString } from "@/shared/lib/date-filter";
 import { filterItemsByWorkerEmails } from "@/shared/lib/admin-worker-scope";
+import { loadDashboardFilters, saveDashboardFilters } from "@/shared/lib/dashboard-filter-persistence";
 import styles from "./dashboard-page.module.css";
 
 const PAGE_SIZE = 8;
@@ -172,6 +173,108 @@ export function DashboardPage() {
   const [selectedWorkId, setSelectedWorkId] = useState<string | null>(null);
   const [adminSelectedWorkerEmails, setAdminSelectedWorkerEmails] = useState<string[] | null>(null);
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<"" | WorkPaymentStatus>("");
+  const dashboardFiltersHydratedRef = useRef(false);
+
+  useEffect(() => {
+    if (!user?.uid) {
+      dashboardFiltersHydratedRef.current = false;
+      return;
+    }
+
+    const saved = loadDashboardFilters(user.uid);
+    if (saved) {
+      setCategoryFilterIds(saved.categoryFilterIds);
+      setPaymentStatusFilter(saved.paymentStatusFilter);
+      setDateFilterPreset(saved.dateFilterPreset);
+      setDateFilterYear(saved.dateFilterYear);
+      if (saved.dateFilterMonth) {
+        setDateFilterMonth(saved.dateFilterMonth);
+      }
+      setDateRangeFrom(saved.dateRangeFrom);
+      setDateRangeTo(saved.dateRangeTo);
+      setWorkerFilter(saved.workerFilter);
+      setSortField(saved.sortField);
+      setSortDirection(saved.sortDirection);
+      setPayoutSearchTerm(saved.payoutSearchTerm);
+      setPayoutWorkerFilter(saved.payoutWorkerFilter);
+      setPayoutDateFilterPreset(saved.payoutDateFilterPreset);
+      setPayoutDateFilterYear(saved.payoutDateFilterYear);
+      if (saved.payoutDateFilterMonth) {
+        setPayoutDateFilterMonth(saved.payoutDateFilterMonth);
+      }
+      setPayoutDateRangeFrom(saved.payoutDateRangeFrom);
+      setPayoutDateRangeTo(saved.payoutDateRangeTo);
+      setPayoutSortField(saved.payoutSortField);
+      setPayoutSortDirection(saved.payoutSortDirection);
+      if (saved.financeMonth) {
+        setFinanceMonth(saved.financeMonth);
+      }
+      setAdminView(saved.adminView);
+      setEmployeeView(saved.employeeView);
+      if (saved.adminSelectedWorkerEmails !== null) {
+        setAdminSelectedWorkerEmails(saved.adminSelectedWorkerEmails);
+      }
+    }
+
+    dashboardFiltersHydratedRef.current = true;
+  }, [user?.uid]);
+
+  useEffect(() => {
+    if (!user?.uid || !dashboardFiltersHydratedRef.current) {
+      return;
+    }
+
+    saveDashboardFilters(user.uid, {
+      categoryFilterIds,
+      paymentStatusFilter,
+      dateFilterPreset,
+      dateFilterYear,
+      dateFilterMonth,
+      dateRangeFrom,
+      dateRangeTo,
+      workerFilter,
+      sortField,
+      sortDirection,
+      payoutSearchTerm,
+      payoutWorkerFilter,
+      payoutDateFilterPreset,
+      payoutDateFilterYear,
+      payoutDateFilterMonth,
+      payoutDateRangeFrom,
+      payoutDateRangeTo,
+      payoutSortField,
+      payoutSortDirection,
+      financeMonth,
+      adminView,
+      employeeView,
+      adminSelectedWorkerEmails,
+    });
+  }, [
+    user?.uid,
+    categoryFilterIds,
+    paymentStatusFilter,
+    dateFilterPreset,
+    dateFilterYear,
+    dateFilterMonth,
+    dateRangeFrom,
+    dateRangeTo,
+    workerFilter,
+    sortField,
+    sortDirection,
+    payoutSearchTerm,
+    payoutWorkerFilter,
+    payoutDateFilterPreset,
+    payoutDateFilterYear,
+    payoutDateFilterMonth,
+    payoutDateRangeFrom,
+    payoutDateRangeTo,
+    payoutSortField,
+    payoutSortDirection,
+    financeMonth,
+    adminView,
+    employeeView,
+    adminSelectedWorkerEmails,
+  ]);
 
   const loadData = useCallback(async () => {
     if (!user) {
