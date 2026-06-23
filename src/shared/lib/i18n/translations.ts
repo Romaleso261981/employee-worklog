@@ -34,6 +34,7 @@ export const translations = {
       addWork: "Додати роботу",
       workAdded: "Роботу успішно додано",
       categoryLabel: "Категорія",
+      categoryFilterHint: "Можна обрати кілька — показуються роботи з усіх обраних категорій.",
       amountLabel: "Сума",
       dateLabel: "Дата",
       descriptionLabel: "Опис",
@@ -166,6 +167,7 @@ export const translations = {
       addWork: "Add work",
       workAdded: "Work entry has been created",
       categoryLabel: "Category",
+      categoryFilterHint: "Select one or more — entries from any selected category are shown.",
       amountLabel: "Amount",
       dateLabel: "Date",
       descriptionLabel: "Description",
@@ -295,6 +297,7 @@ export type TranslationPath =
   | "dashboard.addWork"
   | "dashboard.workAdded"
   | "dashboard.categoryLabel"
+  | "dashboard.categoryFilterHint"
   | "dashboard.amountLabel"
   | "dashboard.dateLabel"
   | "dashboard.descriptionLabel"

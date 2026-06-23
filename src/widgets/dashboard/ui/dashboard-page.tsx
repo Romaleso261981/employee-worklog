@@ -133,7 +133,7 @@ export function DashboardPage() {
   const [salaryPayouts, setSalaryPayouts] = useState<SalaryPayout[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
-  const [categoryFilter, setCategoryFilter] = useState("");
+  const [categoryFilterIds, setCategoryFilterIds] = useState<string[]>([]);
   const [workerFilter, setWorkerFilter] = useState("");
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
@@ -244,7 +244,8 @@ export function DashboardPage() {
 
   const filteredWorks = useMemo(() => {
     return worksForView.filter((item) => {
-      const matchesCategory = categoryFilter ? item.categoryId === categoryFilter : true;
+      const matchesCategory =
+        categoryFilterIds.length === 0 ? true : categoryFilterIds.includes(item.categoryId);
       const matchesWorker =
         user?.role === "admin" ? true : workerFilter ? item.userEmail === workerFilter : true;
       const matchesPayment = paymentStatusFilter ? item.paymentStatus === paymentStatusFilter : true;
@@ -262,7 +263,7 @@ export function DashboardPage() {
   }, [
     worksForView,
     user?.role,
-    categoryFilter,
+    categoryFilterIds,
     workerFilter,
     paymentStatusFilter,
     dateFilterPreset,
@@ -278,7 +279,7 @@ export function DashboardPage() {
 
   const worksFiltersActiveCount = useMemo(() => {
     let n = 0;
-    if (categoryFilter) {
+    if (categoryFilterIds.length > 0) {
       n += 1;
     }
     if (workerFilter && user?.role !== "admin") {
@@ -291,7 +292,14 @@ export function DashboardPage() {
       n += 1;
     }
     return n;
-  }, [categoryFilter, workerFilter, paymentStatusFilter, dateFilterPreset, user?.role]);
+  }, [categoryFilterIds, workerFilter, paymentStatusFilter, dateFilterPreset, user?.role]);
+
+  const toggleCategoryFilter = useCallback((categoryId: string) => {
+    setCategoryFilterIds((prev) =>
+      prev.includes(categoryId) ? prev.filter((id) => id !== categoryId) : [...prev, categoryId],
+    );
+    setPage(1);
+  }, []);
 
   const setPaymentStatusFilterAndPage = useCallback((value: "" | WorkPaymentStatus) => {
     setPaymentStatusFilter(value);
@@ -300,7 +308,7 @@ export function DashboardPage() {
 
   const resetWorksFilters = useCallback(() => {
     const d = new Date();
-    setCategoryFilter("");
+    setCategoryFilterIds([]);
     setWorkerFilter("");
     setPaymentStatusFilter("");
     setDateFilterPreset("all");
@@ -729,24 +737,39 @@ export function DashboardPage() {
           <div className={styles.worksFilterModalScroll}>
             <div className={styles.worksFilterModalSection}>
               <h3 className={styles.worksFilterModalHeading}>{t("dashboard.filtersSection")}</h3>
-              <label className={styles.worksFilterField}>
-                <span>{t("dashboard.categoryLabel")}</span>
-                <select
-                  className={styles.select}
-                  value={categoryFilter}
-                  onChange={(event) => {
-                    setCategoryFilter(event.target.value);
-                    setPage(1);
-                  }}
-                >
-                  <option value="">{t("common.allCategories")}</option>
+              <div className={styles.worksFilterField}>
+                <span>
+                  {t("dashboard.categoryLabel")}
+                  {categoryFilterIds.length > 0 ? (
+                    <span className={styles.categoryFilterCount}> ({categoryFilterIds.length})</span>
+                  ) : null}
+                </span>
+                <p className={styles.categoryFilterHint}>{t("dashboard.categoryFilterHint")}</p>
+                <div className={styles.categoryFilterList} role="group" aria-label={t("dashboard.categoryLabel")}>
                   {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
+                    <label key={category.id} className={styles.categoryFilterOption}>
+                      <input
+                        type="checkbox"
+                        checked={categoryFilterIds.includes(category.id)}
+                        onChange={() => toggleCategoryFilter(category.id)}
+                      />
+                      <span>{category.name}</span>
+                    </label>
                   ))}
-                </select>
-              </label>
+                </div>
+                {categoryFilterIds.length > 0 ? (
+                  <button
+                    type="button"
+                    className={styles.categoryFilterClearButton}
+                    onClick={() => {
+                      setCategoryFilterIds([]);
+                      setPage(1);
+                    }}
+                  >
+                    {t("common.allCategories")}
+                  </button>
+                ) : null}
+              </div>
               {user.role === "admin" ? (
                 <label className={styles.worksFilterField}>
                   <span>{t("workPayment.filterLabel")}</span>
